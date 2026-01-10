@@ -23,6 +23,23 @@ const PROJECTS = [
     tech: ['Next.js', 'Python', 'AI/LLMs', 'Trading APIs'],
     links: { live: 'https://walleto.ai' },
     iconType: 'pulse',
+    isPrivate: false,
+  },
+  {
+    id: 'this-website',
+    title: 'THIS WEBSITE',
+    codename: 'META-0',
+    status: 'LIVE',
+    description: 'The immersive 3D portfolio website you are currently exploring. Features neural network visualization, scroll-driven camera animations, and unique section transitions.',
+    specs: [
+      { label: 'SECTIONS', value: '6' },
+      { label: '3D', value: 'Yes' },
+      { label: 'VIBES', value: '100%' },
+    ],
+    tech: ['Next.js', 'Three.js', 'Framer Motion', 'Tailwind'],
+    links: { github: 'https://github.com/itaiwins/Resume-Website', live: 'https://itairotem.com' },
+    iconType: 'globe',
+    isPrivate: false,
   },
   {
     id: 'oura',
@@ -36,8 +53,9 @@ const PROJECTS = [
       { label: 'UPTIME', value: '24/7' },
     ],
     tech: ['Python', 'OpenAI', 'LangChain', 'APIs'],
-    links: { github: 'https://github.com/itaiwins' },
+    links: {},
     iconType: 'brain',
+    isPrivate: true,
   },
   {
     id: 'trading-bots',
@@ -51,8 +69,9 @@ const PROJECTS = [
       { label: 'INDICATORS', value: '10+' },
     ],
     tech: ['Python', 'CCXT', 'Coinglass', 'BloFin', 'Telegram', 'Pandas'],
-    links: { github: 'https://github.com/itaiwins' },
+    links: {},
     iconType: 'chart',
+    isPrivate: true,
   },
   {
     id: 'polymarket-bot',
@@ -66,8 +85,9 @@ const PROJECTS = [
       { label: 'ROI', value: 'Positive' },
     ],
     tech: ['Python', 'Polymarket API', 'Data Analysis', 'Automation'],
-    links: { github: 'https://github.com/itaiwins' },
+    links: {},
     iconType: 'waves',
+    isPrivate: true,
   },
   {
     id: 'alphahq',
@@ -83,6 +103,7 @@ const PROJECTS = [
     tech: ['Discord', 'Twitter/X', 'Trading', 'Education'],
     links: { live: 'https://whop.com/alphahq' },
     iconType: 'blocks',
+    isPrivate: false,
   },
   {
     id: 'pnl-tracker',
@@ -96,8 +117,9 @@ const PROJECTS = [
       { label: 'SYNC', value: 'Real-time' },
     ],
     tech: ['React', 'Node.js', 'Supabase', 'Exchange APIs'],
-    links: { github: 'https://github.com/itaiwins' },
+    links: {},
     iconType: 'diamond',
+    isPrivate: true,
   },
   {
     id: 'future-projects',
@@ -113,21 +135,7 @@ const PROJECTS = [
     tech: ['Python', 'Next.js', 'AI', 'Web3'],
     links: {},
     iconType: 'code',
-  },
-  {
-    id: 'this-portfolio',
-    title: 'THIS PORTFOLIO',
-    codename: 'META-0',
-    status: 'ACTIVE',
-    description: 'The immersive 3D portfolio website you are currently exploring. Features neural network visualization, smooth animations, and a unique user experience.',
-    specs: [
-      { label: 'SECTIONS', value: '6' },
-      { label: '3D', value: 'Yes' },
-      { label: 'VIBES', value: '100%' },
-    ],
-    tech: ['Next.js', 'Three.js', 'Framer Motion', 'Tailwind'],
-    links: { github: 'https://github.com/itaiwins' },
-    iconType: 'globe',
+    isPrivate: false,
   },
 ];
 
@@ -657,7 +665,8 @@ function ProjectDetail3D({
         </div>
 
         {/* Buttons */}
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-4">
             {project.links.github && (
               <a
                 href={project.links.github}
@@ -684,6 +693,23 @@ function ProjectDetail3D({
                 Launch Project
               </a>
             )}
+          </div>
+
+          {/* Private repo notice */}
+          {project.isPrivate && (
+            <div className="flex items-center justify-center gap-3 py-4 bg-white/5 border border-white/10 rounded-xl">
+              <svg className="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span className="text-white/50 text-sm">Private repository —</span>
+              <a
+                href="mailto:itairotem23@gmail.com?subject=Code%20Access%20Request"
+                className="text-[#d4af37] text-sm font-medium hover:underline"
+              >
+                contact me to view code
+              </a>
+            </div>
+          )}
         </div>
       </motion.div>
     </motion.div>
