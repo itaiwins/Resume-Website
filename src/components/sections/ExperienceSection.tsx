@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface ExperienceSectionProps {
   progress: number;
@@ -82,12 +82,13 @@ const STATS = [
 ];
 
 // Experience card component
-function ExperienceCard({ experience, index, isVisible, isScrollExpanded }: {
+const ExperienceCard = ({ experience, index, isVisible, isScrollExpanded, cardRef }: {
   experience: typeof EXPERIENCE_DATA[0];
   index: number;
   isVisible: boolean;
   isScrollExpanded: boolean;
-}) {
+  cardRef?: (el: HTMLDivElement | null) => void;
+}) => {
   // Expansion is controlled by scroll position from parent
   const isExpanded = isScrollExpanded;
 
@@ -115,22 +116,22 @@ function ExperienceCard({ experience, index, isVisible, isScrollExpanded }: {
   const style = typeStyles[experience.type];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 30 }}
-      transition={{ delay: index * 0.1, duration: 0.5 }}
-      className="relative"
-    >
-      {/* Timeline line */}
+    <div ref={cardRef} className="relative">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 30 }}
+        transition={{ delay: index * 0.1, duration: 0.5 }}
+      >
+        {/* Timeline line */}
       {index < EXPERIENCE_DATA.length - 1 && (
         <div className="absolute left-6 top-16 bottom-0 w-px bg-gradient-to-b from-white/20 to-transparent" />
       )}
 
-      <div className="flex gap-4 md:gap-8">
+      <div className="flex gap-8">
         {/* Timeline node */}
         <div className="relative z-10 flex-shrink-0">
           <motion.div
-            className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl ${style.dot}/10 border border-white/10 flex items-center justify-center backdrop-blur-sm`}
+            className={`w-12 h-12 rounded-xl ${style.dot}/10 border border-white/10 flex items-center justify-center backdrop-blur-sm`}
             whileHover={{ scale: 1.1 }}
           >
             <div className={`w-3 h-3 rounded-full ${style.dot}`} />
@@ -139,13 +140,13 @@ function ExperienceCard({ experience, index, isVisible, isScrollExpanded }: {
 
         {/* Content card */}
         <motion.div
-          className={`flex-1 mb-6 md:mb-8 rounded-xl md:rounded-2xl border transition-all duration-300 ${
+          className={`flex-1 mb-8 rounded-2xl border transition-all duration-300 ${
             isExpanded
               ? 'bg-white/[0.04] border-white/10 shadow-lg shadow-black/20'
               : 'bg-white/[0.01] border-white/5'
           }`}
         >
-          <div className="p-4 md:p-7">
+          <div className="p-7">
             {/* Header row */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
@@ -223,42 +224,51 @@ function ExperienceCard({ experience, index, isVisible, isScrollExpanded }: {
           </div>
         </motion.div>
       </div>
-    </motion.div>
+      </motion.div>
+    </div>
   );
-}
+};
 
 export default function ExperienceSection({ progress }: ExperienceSectionProps) {
   const isVisible = progress > 0.1;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [expandedIndex, setExpandedIndex] = useState(0);
 
-  // Track scroll position to auto-expand cards
+  // Set ref for each card
+  const setCardRef = useCallback((el: HTMLDivElement | null, index: number) => {
+    cardRefs.current[index] = el;
+  }, []);
+
+  // Track scroll position to auto-expand cards using actual element positions
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
     const handleScroll = () => {
-      const scrollTop = container.scrollTop;
-      const containerHeight = container.clientHeight;
+      const containerRect = container.getBoundingClientRect();
+      const triggerPoint = containerRect.top + containerRect.height * 0.4; // 40% from top of container
 
-      // Calculate which card should be expanded based on scroll position
-      // Each card is roughly 150px when collapsed, header is about 400px
-      const headerHeight = 400;
-      const cardHeight = 180;
+      let newExpandedIndex = 0;
 
-      if (scrollTop < headerHeight) {
-        setExpandedIndex(0);
-      } else {
-        const adjustedScroll = scrollTop - headerHeight + containerHeight * 0.3;
-        const newIndex = Math.min(
-          EXPERIENCE_DATA.length - 1,
-          Math.floor(adjustedScroll / cardHeight)
-        );
-        setExpandedIndex(Math.max(0, newIndex));
+      // Find which card is at the trigger point
+      for (let i = 0; i < cardRefs.current.length; i++) {
+        const card = cardRefs.current[i];
+        if (card) {
+          const cardRect = card.getBoundingClientRect();
+          // If the card's top is above the trigger point, it should be expanded
+          if (cardRect.top < triggerPoint) {
+            newExpandedIndex = i;
+          }
+        }
       }
+
+      setExpandedIndex(newExpandedIndex);
     };
 
     container.addEventListener('scroll', handleScroll);
+    // Initial calculation
+    handleScroll();
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -266,12 +276,12 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
     <div className="w-full h-full bg-[#0a0b0f] text-white overflow-hidden flex flex-col">
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         {/* Header Section */}
-        <div className="px-4 md:px-10 pt-8 md:pt-12 pb-8 md:pb-10 border-b border-white/5">
+        <div className="px-10 pt-12 pb-10 border-b border-white/5">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
             transition={{ duration: 0.6 }}
-            className="mb-6 md:mb-9"
+            className="mb-9"
           >
             {/* Status badge */}
             <motion.div
@@ -284,11 +294,11 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
               <span className="text-green-400 text-sm font-medium">Actively building</span>
             </motion.div>
 
-            <h1 className="text-3xl md:text-5xl font-bold mb-2 md:mb-3">
+            <h1 className="text-5xl font-bold mb-3">
               Version
               <span className="text-[#d4af37]"> History</span>
             </h1>
-            <p className="text-white/50 text-base md:text-lg max-w-2xl">
+            <p className="text-white/50 text-lg max-w-2xl">
               A changelog of my journey through Web3, trading, and tech. Each version represents growth, pivots, and new capabilities.
             </p>
           </motion.div>
@@ -298,7 +308,7 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5"
+            className="grid grid-cols-4 gap-5"
           >
             {STATS.map((stat, i) => (
               <motion.div
@@ -318,7 +328,7 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
         </div>
 
         {/* Timeline Section */}
-        <div className="px-4 md:px-10 pt-8 md:pt-10 pb-6 md:pb-8">
+        <div className="px-10 pt-10 pb-8">
           {/* Section header */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -339,6 +349,7 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
                 index={i}
                 isVisible={isVisible}
                 isScrollExpanded={i <= expandedIndex}
+                cardRef={(el) => setCardRef(el, i)}
               />
             ))}
           </div>
@@ -349,18 +360,18 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
           initial={{ opacity: 0 }}
           animate={{ opacity: isVisible ? 1 : 0 }}
           transition={{ delay: 0.6, duration: 0.5 }}
-          className="text-center border-t border-white/5 mx-4 md:mx-10 py-8 md:py-12"
+          className="text-center border-t border-white/5 mx-10 py-12"
         >
           <p className="text-white/30 text-sm mb-8">
             New features shipping regularly...
           </p>
-          <div className="flex justify-center gap-3 md:gap-4 flex-wrap">
+          <div className="flex justify-center gap-4 flex-wrap">
             <motion.a
               href="/resume.docx"
               download
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#b8973a] text-black font-semibold hover:from-[#e5c349] hover:to-[#d4af37] transition-all shadow-lg shadow-[#d4af37]/20 whitespace-nowrap px-5 md:px-7 py-3 md:py-3.5 text-sm md:text-base"
+              className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#b8973a] text-black font-semibold hover:from-[#e5c349] hover:to-[#d4af37] transition-all shadow-lg shadow-[#d4af37]/20 whitespace-nowrap px-7 py-3.5"
             >
               Download Resume
             </motion.a>
@@ -370,7 +381,7 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
               rel="noopener noreferrer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="rounded-xl bg-white/5 border border-white/10 text-white/70 font-medium hover:bg-white/10 hover:text-white transition-all whitespace-nowrap px-5 md:px-7 py-3 md:py-3.5 text-sm md:text-base"
+              className="rounded-xl bg-white/5 border border-white/10 text-white/70 font-medium hover:bg-white/10 hover:text-white transition-all whitespace-nowrap px-7 py-3.5"
             >
               View LinkedIn
             </motion.a>
