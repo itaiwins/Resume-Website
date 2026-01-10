@@ -234,7 +234,7 @@ export default function AboutSection({ progress }: AboutSectionProps) {
           </div>
           <div className="flex gap-2">
             <motion.a
-              href="/resume.docx"
+              href="/Itai_Rotem_Resume.docx"
               download
               whileTap={{ scale: 0.95 }}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c9a432] text-black font-semibold text-sm"
@@ -358,7 +358,7 @@ export default function AboutSection({ progress }: AboutSectionProps) {
         <div className="flex-1 flex items-center justify-center mx-6 my-6">
           <div className="flex flex-col items-center">
             <motion.a
-              href="/resume.docx"
+              href="/Itai_Rotem_Resume.docx"
               download
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}

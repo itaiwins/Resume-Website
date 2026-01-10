@@ -367,7 +367,7 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
           </p>
           <div className="flex justify-center gap-4 flex-wrap">
             <motion.a
-              href="/resume.docx"
+              href="/Itai_Rotem_Resume.docx"
               download
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
