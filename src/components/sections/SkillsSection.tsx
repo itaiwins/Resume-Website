@@ -106,7 +106,8 @@ function SkillRow({ skill, index, isVisible }: {
       initial={{ opacity: 0, x: -30 }}
       animate={{ opacity: isVisible ? 1 : 0, x: isVisible ? 0 : -30 }}
       transition={{ delay: index * 0.03, duration: 0.4, ease: 'easeOut' }}
-      className="grid grid-cols-12 items-center gap-4 py-5 border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group px-10"
+      className="grid grid-cols-12 items-center gap-4 py-5 border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group"
+      style={{ paddingLeft: '40px', paddingRight: '40px' }}
     >
       {/* Rank */}
       <div className="col-span-1 text-white/30 text-sm font-medium">
@@ -116,13 +117,13 @@ function SkillRow({ skill, index, isVisible }: {
       {/* Name & Symbol */}
       <div className="col-span-3 flex items-center gap-4">
         <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+          className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-xs"
           style={{ background: `linear-gradient(135deg, ${skill.color}40, ${skill.color}20)`, border: `1px solid ${skill.color}40` }}
         >
           {skill.symbol.slice(0, 2)}
         </div>
-        <div className="min-w-0">
-          <div className="font-semibold text-white group-hover:text-[#d4af37] transition-colors truncate">
+        <div>
+          <div className="font-semibold text-white group-hover:text-[#d4af37] transition-colors">
             {skill.name}
           </div>
           <div className="text-xs text-white/40">{skill.symbol}</div>
@@ -200,14 +201,14 @@ export default function SkillsSection({ progress }: SkillsSectionProps) {
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
         {/* Hero Stats Section */}
-        <div className="px-10 pt-12 pb-10 border-b border-white/5">
+        <div style={{ padding: '48px 40px 40px 40px' }} className="border-b border-white/5">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="mb-9"
+            style={{ marginBottom: '36px' }}
           >
-            <h1 className="text-5xl font-bold mb-3">
+            <h1 className="text-4xl md:text-5xl font-bold mb-3">
               Technical Skills
               <span className="text-[#d4af37]"> Portfolio</span>
             </h1>
@@ -215,7 +216,7 @@ export default function SkillsSection({ progress }: SkillsSectionProps) {
           </motion.div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
             <StatCard label="Portfolio Value" value={`${totalValue}%`} change="+127%" delay={0.1} />
             <StatCard label="Active Skills" value={SKILLS_DATA.length.toString()} delay={0.15} />
             <StatCard label="Avg. Growth" value={`${avgChange.toFixed(1)}%`} change="+45%" delay={0.2} />
@@ -224,7 +225,7 @@ export default function SkillsSection({ progress }: SkillsSectionProps) {
         </div>
 
         {/* Category Tabs */}
-        <div className="px-10 py-6 border-b border-white/5 flex items-center gap-3 overflow-x-auto">
+        <div style={{ padding: '24px 40px' }} className="border-b border-white/5 flex items-center gap-3 overflow-x-auto">
           {['All Skills', 'Trading', 'Web3', 'Technical', 'Marketing'].map((cat, i) => (
             <motion.button
               key={cat}
@@ -244,7 +245,7 @@ export default function SkillsSection({ progress }: SkillsSectionProps) {
         </div>
 
         {/* Table Header */}
-        <div className="grid grid-cols-12 items-center gap-4 py-4 text-xs text-white/40 uppercase tracking-wider border-b border-white/5 bg-white/[0.02] sticky top-0 font-medium px-10">
+        <div className="grid grid-cols-12 items-center gap-4 py-4 text-xs text-white/40 uppercase tracking-wider border-b border-white/5 bg-white/[0.02] sticky top-0 font-medium" style={{ paddingLeft: '40px', paddingRight: '40px' }}>
           <div className="col-span-1">#</div>
           <div className="col-span-3">Skill</div>
           <div className="col-span-2 hidden md:block">Category</div>
@@ -254,7 +255,7 @@ export default function SkillsSection({ progress }: SkillsSectionProps) {
         </div>
 
         {/* Skills List */}
-        <div className="pb-8">
+        <div style={{ paddingBottom: '32px' }}>
           {filteredSkills.map((skill, i) => (
             <SkillRow
               key={skill.symbol}
@@ -267,7 +268,7 @@ export default function SkillsSection({ progress }: SkillsSectionProps) {
       </div>
 
       {/* Bottom Ticker */}
-      <div className="border-t border-white/10 bg-[#0a0b0f] py-4 overflow-hidden pl-10">
+      <div className="border-t border-white/10 bg-[#0a0b0f] py-4 overflow-hidden" style={{ paddingLeft: '40px' }}>
         <motion.div
           animate={{ x: [0, -1500] }}
           transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
