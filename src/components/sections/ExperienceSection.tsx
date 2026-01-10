@@ -126,11 +126,11 @@ function ExperienceCard({ experience, index, isVisible, isScrollExpanded }: {
         <div className="absolute left-6 top-16 bottom-0 w-px bg-gradient-to-b from-white/20 to-transparent" />
       )}
 
-      <div className="flex gap-8">
+      <div className="flex gap-4 md:gap-8">
         {/* Timeline node */}
         <div className="relative z-10 flex-shrink-0">
           <motion.div
-            className={`w-12 h-12 rounded-xl ${style.dot}/10 border border-white/10 flex items-center justify-center backdrop-blur-sm`}
+            className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl ${style.dot}/10 border border-white/10 flex items-center justify-center backdrop-blur-sm`}
             whileHover={{ scale: 1.1 }}
           >
             <div className={`w-3 h-3 rounded-full ${style.dot}`} />
@@ -139,13 +139,13 @@ function ExperienceCard({ experience, index, isVisible, isScrollExpanded }: {
 
         {/* Content card */}
         <motion.div
-          className={`flex-1 mb-8 rounded-2xl border transition-all duration-300 ${
+          className={`flex-1 mb-6 md:mb-8 rounded-xl md:rounded-2xl border transition-all duration-300 ${
             isExpanded
               ? 'bg-white/[0.04] border-white/10 shadow-lg shadow-black/20'
               : 'bg-white/[0.01] border-white/5'
           }`}
         >
-          <div style={{ padding: '28px 32px' }}>
+          <div className="p-4 md:p-7">
             {/* Header row */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
@@ -266,12 +266,12 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
     <div className="w-full h-full bg-[#0a0b0f] text-white overflow-hidden flex flex-col">
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         {/* Header Section */}
-        <div style={{ padding: '48px 40px 40px 40px' }} className="border-b border-white/5">
+        <div className="px-4 md:px-10 pt-8 md:pt-12 pb-8 md:pb-10 border-b border-white/5">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
             transition={{ duration: 0.6 }}
-            style={{ marginBottom: '36px' }}
+            className="mb-6 md:mb-9"
           >
             {/* Status badge */}
             <motion.div
@@ -284,11 +284,11 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
               <span className="text-green-400 text-sm font-medium">Actively building</span>
             </motion.div>
 
-            <h1 className="text-4xl md:text-5xl font-bold mb-3">
+            <h1 className="text-3xl md:text-5xl font-bold mb-2 md:mb-3">
               Version
               <span className="text-[#d4af37]"> History</span>
             </h1>
-            <p className="text-white/50 text-lg max-w-2xl">
+            <p className="text-white/50 text-base md:text-lg max-w-2xl">
               A changelog of my journey through Web3, trading, and tech. Each version represents growth, pivots, and new capabilities.
             </p>
           </motion.div>
@@ -298,7 +298,7 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-5"
+            className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5"
           >
             {STATS.map((stat, i) => (
               <motion.div
@@ -318,7 +318,7 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
         </div>
 
         {/* Timeline Section */}
-        <div style={{ padding: '40px 40px 32px 40px' }}>
+        <div className="px-4 md:px-10 pt-8 md:pt-10 pb-6 md:pb-8">
           {/* Section header */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -349,20 +349,18 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
           initial={{ opacity: 0 }}
           animate={{ opacity: isVisible ? 1 : 0 }}
           transition={{ delay: 0.6, duration: 0.5 }}
-          className="text-center border-t border-white/5"
-          style={{ margin: '0 40px', padding: '48px 0 64px 0' }}
+          className="text-center border-t border-white/5 mx-4 md:mx-10 py-8 md:py-12"
         >
           <p className="text-white/30 text-sm mb-8">
             New features shipping regularly...
           </p>
-          <div className="flex justify-center gap-4 flex-wrap">
+          <div className="flex justify-center gap-3 md:gap-4 flex-wrap">
             <motion.a
               href="/resume.docx"
               download
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#b8973a] text-black font-semibold hover:from-[#e5c349] hover:to-[#d4af37] transition-all shadow-lg shadow-[#d4af37]/20 whitespace-nowrap"
-              style={{ padding: '14px 28px' }}
+              className="rounded-xl bg-gradient-to-r from-[#d4af37] to-[#b8973a] text-black font-semibold hover:from-[#e5c349] hover:to-[#d4af37] transition-all shadow-lg shadow-[#d4af37]/20 whitespace-nowrap px-5 md:px-7 py-3 md:py-3.5 text-sm md:text-base"
             >
               Download Resume
             </motion.a>
@@ -372,8 +370,7 @@ export default function ExperienceSection({ progress }: ExperienceSectionProps) 
               rel="noopener noreferrer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="rounded-xl bg-white/5 border border-white/10 text-white/70 font-medium hover:bg-white/10 hover:text-white transition-all whitespace-nowrap"
-              style={{ padding: '14px 28px' }}
+              className="rounded-xl bg-white/5 border border-white/10 text-white/70 font-medium hover:bg-white/10 hover:text-white transition-all whitespace-nowrap px-5 md:px-7 py-3 md:py-3.5 text-sm md:text-base"
             >
               View LinkedIn
             </motion.a>

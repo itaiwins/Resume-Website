@@ -97,11 +97,11 @@ export default function AboutSection({ progress }: AboutSectionProps) {
   }, [visibleLines]);
 
   return (
-    <div className="w-full h-full bg-[#0a0a0a] text-white overflow-hidden flex items-center justify-center p-6 md:p-10 lg:p-16">
+    <div className="w-full h-full bg-[#0a0a0a] text-white overflow-hidden flex items-center justify-center p-4 md:p-10 lg:p-16">
       {/* Centered Container */}
-      <div className="w-full max-w-6xl h-full max-h-[85vh] flex rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+      <div className="w-full max-w-6xl h-full max-h-[85vh] flex flex-col lg:flex-row rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
         {/* Left Side - Terminal */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {/* Terminal Window Chrome */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -207,6 +207,52 @@ export default function AboutSection({ progress }: AboutSectionProps) {
           <div className="flex items-center gap-4 text-white/40">
             <span>ln 24, col 1</span>
             <span>100%</span>
+          </div>
+        </motion.div>
+
+        {/* Mobile Quick Actions - visible only on mobile */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="lg:hidden bg-[#0a0a0a] border-t border-white/10 p-4 flex flex-col gap-3"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#d4af37] to-[#a08530] flex items-center justify-center">
+                <span className="text-sm font-bold text-black">IR</span>
+              </div>
+              <div>
+                <div className="text-sm font-semibold">Itai Rotem</div>
+                <div className="text-xs text-white/40">Web3 Builder & Trader</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-green-400 text-xs">Open</span>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <motion.a
+              href="/resume.docx"
+              download
+              whileTap={{ scale: 0.95 }}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c9a432] text-black font-semibold text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Resume
+            </motion.a>
+            <a
+              href="mailto:itairotem23@gmail.com"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white/70 font-medium text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Email
+            </a>
           </div>
         </motion.div>
       </div>

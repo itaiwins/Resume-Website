@@ -151,7 +151,7 @@ export default function ContactSection({ progress, onReturnToMain }: ContactSect
     <div className="w-full h-full bg-[#0a0b0f] text-white overflow-hidden flex flex-col">
       <div className="flex-1 overflow-y-auto">
         {/* Header Section */}
-        <div style={{ padding: '48px 40px 40px 40px' }} className="border-b border-white/5">
+        <div className="px-4 md:px-10 pt-8 md:pt-12 pb-8 md:pb-10 border-b border-white/5">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
@@ -168,7 +168,7 @@ export default function ContactSection({ progress, onReturnToMain }: ContactSect
               <span className="text-green-400 text-sm font-medium">Available for opportunities</span>
             </motion.div>
 
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <h1 className="text-3xl md:text-5xl font-bold mb-3 md:mb-4">
               Let&apos;s
               <span className="text-[#d4af37]"> Connect</span>
             </h1>
@@ -179,16 +179,16 @@ export default function ContactSection({ progress, onReturnToMain }: ContactSect
         </div>
 
         {/* Main Content */}
-        <div style={{ padding: '40px' }}>
-          <div className="grid lg:grid-cols-2 gap-10">
+        <div className="p-4 md:p-10">
+          <div className="grid lg:grid-cols-2 gap-6 md:gap-10">
             {/* Left Column - Contact Form */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: isVisible ? 1 : 0, x: isVisible ? 0 : -20 }}
               transition={{ delay: 0.15, duration: 0.5 }}
             >
-              <div className="bg-white/[0.02] rounded-2xl border border-white/5 overflow-hidden">
-                <div style={{ padding: '32px' }}>
+              <div className="bg-white/[0.02] rounded-xl md:rounded-2xl border border-white/5 overflow-hidden">
+                <div className="p-5 md:p-8">
                   <h2 className="text-xl font-semibold mb-6">Send a Message</h2>
 
                   <form onSubmit={handleSubmit} className="space-y-5">
@@ -261,9 +261,9 @@ export default function ContactSection({ progress, onReturnToMain }: ContactSect
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
                 transition={{ delay: 0.35, duration: 0.5 }}
-                className="bg-white/[0.02] rounded-2xl border border-white/5 overflow-hidden"
+                className="bg-white/[0.02] rounded-xl md:rounded-2xl border border-white/5 overflow-hidden"
               >
-                <div style={{ padding: '24px 32px' }}>
+                <div className="p-5 md:p-8">
                   <h3 className="text-xs uppercase tracking-wider text-white/30 font-semibold mb-4">Frequently Asked</h3>
                   <div>
                     {FAQ_ITEMS.map((item, i) => (
@@ -277,12 +277,12 @@ export default function ContactSection({ progress, onReturnToMain }: ContactSect
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '0 40px 48px 40px' }}>
+        <div className="px-4 md:px-10 pb-8 md:pb-12">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: isVisible ? 1 : 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
-            className="text-center pt-10 border-t border-white/5"
+            className="text-center pt-8 md:pt-10 border-t border-white/5"
           >
             <p className="text-white/25 text-sm mb-3">
               Built with Next.js, Three.js & TypeScript
@@ -292,7 +292,7 @@ export default function ContactSection({ progress, onReturnToMain }: ContactSect
             </p>
 
             {/* Spacer */}
-            <div style={{ height: '30px' }} />
+            <div className="h-6 md:h-8" />
 
             {/* Back to Main Page Button */}
             <motion.button
