@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useMemo, useState } from 'react';
-import { useFrame, useThree, invalidate } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Html, OrbitControls } from '@react-three/drei';
 import { MotionValue } from 'framer-motion';
@@ -33,22 +33,15 @@ interface Chapter {
 }
 
 // Generate spherical network nodes using Fibonacci distribution
-function generateNetworkNodes(isMobile: boolean) {
+function generateNetworkNodes() {
   const nodes: Array<{ position: [number, number, number]; id: string }> = [];
 
-  // Reduced node count for mobile
-  const shells = isMobile
-    ? [
-        { count: 10, radius: 2.5 },
-        { count: 15, radius: 4 },
-        { count: 20, radius: 5.5 },
-      ]
-    : [
-        { count: 20, radius: 2.5 },
-        { count: 40, radius: 4 },
-        { count: 60, radius: 5.5 },
-        { count: 40, radius: 7 },
-      ];
+  const shells = [
+    { count: 20, radius: 2.5 },
+    { count: 40, radius: 4 },
+    { count: 60, radius: 5.5 },
+    { count: 40, radius: 7 },
+  ];
 
   let idx = 0;
   shells.forEach((shell) => {
@@ -71,22 +64,23 @@ function generateNetworkNodes(isMobile: boolean) {
   return nodes;
 }
 
+const NETWORK_NODES = generateNetworkNodes();
+
 // Generate connections between nearby nodes
-function generateConnections(nodes: Array<{ position: [number, number, number]; id: string }>, isMobile: boolean) {
+function generateConnections() {
   const connections: Array<{ start: [number, number, number]; end: [number, number, number]; id: string }> = [];
-  const maxDist = isMobile ? 2.5 : 3; // Shorter connections on mobile = fewer connections
 
   // Connect network nodes
-  nodes.forEach((node, i) => {
+  NETWORK_NODES.forEach((node, i) => {
     const nodePos = new THREE.Vector3(...node.position);
 
-    nodes.forEach((other, j) => {
+    NETWORK_NODES.forEach((other, j) => {
       if (i >= j) return;
 
       const otherPos = new THREE.Vector3(...other.position);
       const dist = nodePos.distanceTo(otherPos);
 
-      if (dist < maxDist) {
+      if (dist < 3) {
         connections.push({
           start: node.position,
           end: other.position,
@@ -100,7 +94,7 @@ function generateConnections(nodes: Array<{ position: [number, number, number]; 
   SECTION_NODES.forEach((sNode) => {
     const sPos = new THREE.Vector3(...sNode.position);
 
-    nodes.forEach((node, i) => {
+    NETWORK_NODES.forEach((node, i) => {
       const nodePos = new THREE.Vector3(...node.position);
       const dist = sPos.distanceTo(nodePos);
 
@@ -117,62 +111,24 @@ function generateConnections(nodes: Array<{ position: [number, number, number]; 
   return connections;
 }
 
-// Instanced nodes component - much more efficient than individual meshes
-function InstancedNodes({
-  nodes,
-  opacity,
-  isMobile
-}: {
-  nodes: Array<{ position: [number, number, number]; id: string }>;
-  opacity: number;
-  isMobile: boolean;
-}) {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
-  const dummy = useMemo(() => new THREE.Object3D(), []);
+const CONNECTIONS = generateConnections();
 
-  useMemo(() => {
-    if (!meshRef.current) return;
+// Simple network node with animated opacity
+function NetworkNode({ position, opacity }: { position: [number, number, number]; opacity: number }) {
+  const meshRef = useRef<THREE.Mesh>(null);
 
-    nodes.forEach((node, i) => {
-      dummy.position.set(...node.position);
-      dummy.updateMatrix();
-      meshRef.current!.setMatrixAt(i, dummy.matrix);
-    });
-    meshRef.current.instanceMatrix.needsUpdate = true;
-  }, [nodes, dummy]);
+  useFrame(() => {
+    if (meshRef.current) {
+      const mat = meshRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = THREE.MathUtils.lerp(mat.opacity, opacity, 0.1);
+    }
+  });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, nodes.length]}>
-      <sphereGeometry args={[NODE_SIZE, isMobile ? 6 : 12, isMobile ? 6 : 12]} />
-      <meshBasicMaterial color={NODE_COLOR} transparent opacity={opacity * 0.8} />
-    </instancedMesh>
-  );
-}
-
-// Batched connections using a single line segments geometry
-function BatchedConnections({
-  connections,
-  opacity
-}: {
-  connections: Array<{ start: [number, number, number]; end: [number, number, number]; id: string }>;
-  opacity: number;
-}) {
-  const lineRef = useRef<THREE.LineSegments>(null);
-
-  const geometry = useMemo(() => {
-    const positions: number[] = [];
-    connections.forEach((conn) => {
-      positions.push(...conn.start, ...conn.end);
-    });
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    return geo;
-  }, [connections]);
-
-  return (
-    <lineSegments ref={lineRef} geometry={geometry}>
-      <lineBasicMaterial color={NODE_COLOR} transparent opacity={opacity * 0.15} />
-    </lineSegments>
+    <mesh ref={meshRef} position={position}>
+      <sphereGeometry args={[NODE_SIZE, 12, 12]} />
+      <meshBasicMaterial color={NODE_COLOR} transparent opacity={opacity} />
+    </mesh>
   );
 }
 
@@ -184,7 +140,6 @@ function SectionNode({
   isNearby,
   opacity,
   enterProgress,
-  isMobile,
 }: {
   label: string;
   position: [number, number, number];
@@ -192,7 +147,6 @@ function SectionNode({
   isNearby: boolean;
   opacity: number;
   enterProgress: number;
-  isMobile: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const showLabel = (isNearby || isActive) && opacity > 0.2 && enterProgress < 0.3;
@@ -204,7 +158,7 @@ function SectionNode({
     <group ref={groupRef} position={position}>
       {/* Core node - simple fade */}
       <mesh>
-        <sphereGeometry args={[SECTION_NODE_SIZE, isMobile ? 8 : 16, isMobile ? 8 : 16]} />
+        <sphereGeometry args={[SECTION_NODE_SIZE, 16, 16]} />
         <meshBasicMaterial
           color={NODE_COLOR}
           transparent
@@ -212,17 +166,15 @@ function SectionNode({
         />
       </mesh>
 
-      {/* Subtle glow effect - skip on mobile */}
-      {!isMobile && (
-        <mesh>
-          <sphereGeometry args={[SECTION_NODE_SIZE * 1.5, 16, 16]} />
-          <meshBasicMaterial
-            color={NODE_COLOR}
-            transparent
-            opacity={0.2 * fadeOpacity}
-          />
-        </mesh>
-      )}
+      {/* Subtle glow effect */}
+      <mesh>
+        <sphereGeometry args={[SECTION_NODE_SIZE * 1.5, 16, 16]} />
+        <meshBasicMaterial
+          color={NODE_COLOR}
+          transparent
+          opacity={0.2 * fadeOpacity}
+        />
+      </mesh>
 
       {/* Label */}
       {showLabel && (
@@ -251,19 +203,42 @@ function SectionNode({
   );
 }
 
+// Connection line with animated opacity
+function ConnectionLine({ start, end, opacity }: { start: [number, number, number]; end: [number, number, number]; opacity: number }) {
+  const lineRef = useRef<THREE.Line>(null);
+
+  useFrame(() => {
+    if (lineRef.current) {
+      const mat = lineRef.current.material as THREE.LineBasicMaterial;
+      mat.opacity = THREE.MathUtils.lerp(mat.opacity, opacity, 0.1);
+    }
+  });
+
+  const lineObject = useMemo(() => {
+    const points = [new THREE.Vector3(...start), new THREE.Vector3(...end)];
+    const geo = new THREE.BufferGeometry().setFromPoints(points);
+    const mat = new THREE.LineBasicMaterial({
+      color: NODE_COLOR,
+      transparent: true,
+      opacity: opacity,
+    });
+    return new THREE.Line(geo, mat);
+  }, [start, end, opacity]);
+
+  return <primitive ref={lineRef} object={lineObject} />;
+}
+
 // Camera controller - simple zoom in/out for sections
 function ScrollCameraController({
   scrollProgress,
   chapters,
   isIntro,
   onSectionChange,
-  isMobile,
 }: {
   scrollProgress: MotionValue<number>;
   chapters: Chapter[];
   isIntro: boolean;
   onSectionChange: (section: string | null, progress: number) => void;
-  isMobile: boolean;
 }) {
   const { camera } = useThree();
   const targetPosition = useRef(new THREE.Vector3(0, 0, 22));
@@ -272,9 +247,6 @@ function ScrollCameraController({
   const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
 
   useFrame((_, delta) => {
-    // Trigger re-render on mobile since we're using demand frameloop
-    if (isMobile) invalidate();
-
     if (isIntro) {
       // Slow ambient rotation during intro
       introRotation.current += delta * 0.15;
@@ -368,22 +340,16 @@ interface InteractiveNetworkProps {
   scrollProgress: MotionValue<number>;
   chapters: Chapter[];
   isIntro: boolean;
-  isMobile?: boolean;
 }
 
 export default function InteractiveNetwork({
   scrollProgress,
   chapters,
   isIntro,
-  isMobile = false,
 }: InteractiveNetworkProps) {
   const groupRef = useRef<THREE.Group>(null);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [sectionProgress, setSectionProgress] = useState(0);
-
-  // Generate nodes and connections based on device type
-  const networkNodes = useMemo(() => generateNetworkNodes(isMobile), [isMobile]);
-  const connections = useMemo(() => generateConnections(networkNodes, isMobile), [networkNodes, isMobile]);
 
   // Callback from camera controller
   const handleSectionChange = (section: string | null, progress: number) => {
@@ -440,16 +406,28 @@ export default function InteractiveNetwork({
         chapters={chapters}
         isIntro={isIntro}
         onSectionChange={handleSectionChange}
-        isMobile={isMobile}
       />
 
       {/* Network - fades when entering a world */}
       <group ref={groupRef}>
-        {/* Instanced network nodes - much more efficient */}
-        <InstancedNodes nodes={networkNodes} opacity={networkOpacity} isMobile={isMobile} />
+        {/* Network nodes */}
+        {NETWORK_NODES.map((node) => (
+          <NetworkNode
+            key={node.id}
+            position={node.position}
+            opacity={0.8 * networkOpacity}
+          />
+        ))}
 
-        {/* Batched connections - single draw call */}
-        <BatchedConnections connections={connections} opacity={networkOpacity} />
+        {/* Connections */}
+        {CONNECTIONS.map((conn) => (
+          <ConnectionLine
+            key={conn.id}
+            start={conn.start}
+            end={conn.end}
+            opacity={0.15 * networkOpacity}
+          />
+        ))}
 
         {/* Section nodes */}
         {SECTION_NODES.map((node) => {
@@ -464,7 +442,6 @@ export default function InteractiveNetwork({
               isNearby={getNearbySection() === node.id}
               opacity={networkOpacity}
               enterProgress={enterProg}
-              isMobile={isMobile}
             />
           );
         })}

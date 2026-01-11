@@ -58,35 +58,19 @@ const PROJECTS = [
     isPrivate: true,
   },
   {
-    id: 'trading-bots',
-    title: 'CRYPTO TRADING BOTS',
+    id: 'trading-systems',
+    title: 'AUTOMATED TRADING',
     codename: 'ALPHA-3',
     status: 'OPERATIONAL',
-    description: 'Automated long/short trading systems using live market indicators, funding rates, and sentiment analysis. Features a confluence engine combining RSI, Fear & Greed Index, CVD, and trend bias for precision entries. Includes Bull/Bear dual-bot ecosystem for market-adaptive strategies.',
+    description: 'Suite of automated trading systems including crypto trading bots and Polymarket prediction bots. Uses live market indicators, funding rates, sentiment analysis, and a confluence engine combining RSI, Fear & Greed Index, CVD, and trend bias. Analyzes odds and identifies value bets across crypto and prediction markets.',
     specs: [
+      { label: 'BOTS', value: '5+' },
+      { label: 'MARKETS', value: 'Crypto/Poly' },
       { label: 'SIGNALS', value: 'Live' },
-      { label: 'EXCHANGES', value: '3+' },
-      { label: 'INDICATORS', value: '10+' },
     ],
-    tech: ['Python', 'CCXT', 'Coinglass', 'BloFin', 'Telegram', 'Pandas'],
+    tech: ['Python', 'CCXT', 'Coinglass', 'Polymarket API', 'Telegram'],
     links: {},
     iconType: 'chart',
-    isPrivate: true,
-  },
-  {
-    id: 'polymarket-bot',
-    title: 'POLYMARKET BOT',
-    codename: 'POLY-1',
-    status: 'ACTIVE',
-    description: 'Automated prediction market bot for Polymarket. Analyzes odds, identifies value bets, and executes trades based on custom strategies and market inefficiencies.',
-    specs: [
-      { label: 'MARKETS', value: '50+' },
-      { label: 'SIGNALS', value: 'Live' },
-      { label: 'ROI', value: 'Positive' },
-    ],
-    tech: ['Python', 'Polymarket API', 'Data Analysis', 'Automation'],
-    links: {},
-    iconType: 'waves',
     isPrivate: true,
   },
   {
@@ -106,20 +90,68 @@ const PROJECTS = [
     isPrivate: false,
   },
   {
-    id: 'pnl-tracker',
-    title: 'CRYPTO PNL TRACKER',
-    codename: 'PNL-1',
-    status: 'DEPLOYED',
-    description: 'Full-stack application for tracking cryptocurrency profits and losses across multiple exchanges. Real-time sync, trade history, and performance analytics.',
+    id: 'market-dashboard',
+    title: 'MARKET DASHBOARD',
+    codename: 'DASH-1',
+    status: 'LIVE',
+    description: 'Real-time cryptocurrency market dashboard displaying live pricing, Fear & Greed Index, funding rates, and interactive price charts. Auto-refreshes every 30 seconds with a sleek dark theme interface.',
     specs: [
-      { label: 'EXCHANGES', value: '5+' },
-      { label: 'TRADES', value: '10K+' },
-      { label: 'SYNC', value: 'Real-time' },
+      { label: 'COINS', value: '3' },
+      { label: 'REFRESH', value: '30s' },
+      { label: 'CHARTS', value: 'Live' },
     ],
-    tech: ['React', 'Node.js', 'Supabase', 'Exchange APIs'],
-    links: {},
-    iconType: 'diamond',
-    isPrivate: true,
+    tech: ['React', 'Vite', 'Tailwind', 'Recharts', 'CoinGecko API'],
+    links: { github: 'https://github.com/itaiwins/market-dashboard' },
+    iconType: 'dashboard',
+    isPrivate: false,
+  },
+  {
+    id: 'backtesting-framework',
+    title: 'BACKTEST ENGINE',
+    codename: 'BT-1',
+    status: 'LIVE',
+    description: 'Python-based backtesting framework for testing crypto trading strategies on historical data. Features pluggable strategy architecture, Sharpe/Sortino ratios, max drawdown analysis, and professional equity curve visualizations.',
+    specs: [
+      { label: 'STRATEGIES', value: '3+' },
+      { label: 'METRICS', value: '10+' },
+      { label: 'DATA', value: 'Binance' },
+    ],
+    tech: ['Python', 'Pandas', 'NumPy', 'Matplotlib', 'Binance API'],
+    links: { github: 'https://github.com/itaiwins/backtesting-framework' },
+    iconType: 'backtest',
+    isPrivate: false,
+  },
+  {
+    id: 'trading-signal-api',
+    title: 'SIGNAL API',
+    codename: 'SIG-1',
+    status: 'LIVE',
+    description: 'Cryptocurrency trading signals REST API built with FastAPI. Analyzes real-time market data using RSI, MACD, and EMA crossovers to generate buy/sell/hold recommendations with confidence ratings. Supports 40+ cryptocurrencies.',
+    specs: [
+      { label: 'COINS', value: '40+' },
+      { label: 'INDICATORS', value: '3' },
+      { label: 'DOCKER', value: 'Yes' },
+    ],
+    tech: ['Python', 'FastAPI', 'Pandas', 'Docker', 'CoinGecko API'],
+    links: { github: 'https://github.com/itaiwins/trading-signal-api' },
+    iconType: 'signal',
+    isPrivate: false,
+  },
+  {
+    id: 'crypto-research-agent',
+    title: 'RESEARCH AGENT',
+    codename: 'AGENT-1',
+    status: 'LIVE',
+    description: 'AI-powered crypto research tool using Claude\'s tool-use capabilities. Autonomously fetches prices, aggregates news from multiple sources, and generates comprehensive research reports. Supports 30+ major cryptocurrencies.',
+    specs: [
+      { label: 'COINS', value: '30+' },
+      { label: 'AI', value: 'Claude' },
+      { label: 'SOURCES', value: 'Multi' },
+    ],
+    tech: ['Python', 'Anthropic Claude', 'Typer', 'Rich', 'HTTPX'],
+    links: { github: 'https://github.com/itaiwins/crypto-research-agent' },
+    iconType: 'agent',
+    isPrivate: false,
   },
   {
     id: 'future-projects',
@@ -473,12 +505,176 @@ function AnimatedIcon({ type }: { type: string }) {
             transition={{ duration: 3, repeat: Infinity }} />
         </svg>
       );
+    case 'dashboard':
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full">
+          {/* Dashboard frame */}
+          <motion.rect x="10" y="15" width="80" height="55" rx="4" stroke="currentColor" strokeWidth="2" fill="none"
+            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+            transition={{ duration: 1 }} />
+          {/* Top bar */}
+          <motion.rect x="10" y="15" width="80" height="12" fill="currentColor" opacity={0.1} />
+          <motion.circle cx="20" cy="21" r="2" fill="currentColor" opacity={0.5} />
+          <motion.circle cx="28" cy="21" r="2" fill="currentColor" opacity={0.3} />
+          <motion.circle cx="36" cy="21" r="2" fill="currentColor" opacity={0.3} />
+          {/* Chart area */}
+          <motion.path d="M18 60 L30 48 L42 52 L54 38 L66 42 L78 30" stroke="currentColor" strokeWidth="2" fill="none"
+            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+            transition={{ duration: 1.5, delay: 0.5, repeat: Infinity, repeatDelay: 2 }} />
+          {/* Live indicator */}
+          <motion.circle cx="78" cy="30" r="3" fill="currentColor"
+            animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.3, 1] }}
+            transition={{ duration: 1, repeat: Infinity }} />
+          {/* Stats boxes */}
+          <motion.rect x="15" y="75" width="20" height="12" rx="2" stroke="currentColor" strokeWidth="1" fill="none" opacity={0.5}
+            animate={{ opacity: [0.3, 0.7, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }} />
+          <motion.rect x="40" y="75" width="20" height="12" rx="2" stroke="currentColor" strokeWidth="1" fill="none" opacity={0.5}
+            animate={{ opacity: [0.3, 0.7, 0.3] }}
+            transition={{ duration: 2, delay: 0.3, repeat: Infinity }} />
+          <motion.rect x="65" y="75" width="20" height="12" rx="2" stroke="currentColor" strokeWidth="1" fill="none" opacity={0.5}
+            animate={{ opacity: [0.3, 0.7, 0.3] }}
+            transition={{ duration: 2, delay: 0.6, repeat: Infinity }} />
+          {/* Refresh indicator */}
+          <motion.g animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            style={{ transformOrigin: "82px 21px" }}>
+            <motion.path d="M79 21 A3 3 0 1 1 82 18" stroke="currentColor" strokeWidth="1" fill="none" opacity={0.5} />
+          </motion.g>
+        </svg>
+      );
+    case 'backtest':
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full">
+          {/* Time arrow */}
+          <motion.path d="M10 50 L90 50" stroke="currentColor" strokeWidth="1.5" fill="none" opacity={0.3} />
+          <motion.path d="M85 45 L90 50 L85 55" stroke="currentColor" strokeWidth="1.5" fill="none" opacity={0.3} />
+          {/* Historical data points */}
+          {[20, 35, 50, 65, 80].map((x, i) => (
+            <motion.g key={i}>
+              <motion.circle cx={x} cy={50 - Math.sin(i * 0.8) * 15 - 5} r="3" stroke="currentColor" strokeWidth="1.5" fill="none"
+                animate={{ fill: ['transparent', 'rgba(255,255,255,0.3)', 'transparent'] }}
+                transition={{ duration: 1.5, delay: i * 0.2, repeat: Infinity }} />
+              <motion.line x1={x} y1={50} x2={x} y2={50 - Math.sin(i * 0.8) * 15 - 5} stroke="currentColor" strokeWidth="0.5" opacity={0.3} />
+            </motion.g>
+          ))}
+          {/* Strategy line being drawn */}
+          <motion.path d="M20 35 Q35 25 50 40 T80 30" stroke="currentColor" strokeWidth="2" fill="none"
+            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+            transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }} />
+          {/* Rewind effect */}
+          <motion.g animate={{ x: [-60, 10] }} transition={{ duration: 3, repeat: Infinity }}>
+            <motion.path d="M15 75 L10 80 L15 85" stroke="currentColor" strokeWidth="1.5" fill="none" opacity={0.6} />
+            <motion.path d="M25 75 L20 80 L25 85" stroke="currentColor" strokeWidth="1.5" fill="none" opacity={0.4} />
+          </motion.g>
+          {/* Results panel */}
+          <motion.rect x="60" y="65" width="30" height="25" rx="2" stroke="currentColor" strokeWidth="1" fill="none" opacity={0.4} />
+          <motion.text x="68" y="75" fill="currentColor" fontSize="6" opacity={0.5}>ROI</motion.text>
+          <motion.text x="67" y="85" fill="currentColor" fontSize="8" fontFamily="monospace"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity }}>+24%</motion.text>
+        </svg>
+      );
+    case 'signal':
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full">
+          {/* API endpoint representation */}
+          <motion.rect x="15" y="25" width="70" height="50" rx="4" stroke="currentColor" strokeWidth="1.5" fill="none" opacity={0.4} />
+          {/* Endpoint path */}
+          <motion.text x="20" y="38" fill="currentColor" fontSize="6" fontFamily="monospace" opacity={0.5}>/api/signal</motion.text>
+          {/* Signal indicators */}
+          <motion.g>
+            {/* BUY signal */}
+            <motion.rect x="20" y="45" width="18" height="12" rx="2" fill="currentColor" opacity={0.1}
+              animate={{ opacity: [0.1, 0.3, 0.1] }}
+              transition={{ duration: 2, repeat: Infinity }} />
+            <motion.text x="24" y="53" fill="currentColor" fontSize="5" fontFamily="monospace">BUY</motion.text>
+            <motion.path d="M29 58 L29 62 L32 60 Z" fill="currentColor" opacity={0.8}
+              animate={{ y: [0, -2, 0] }}
+              transition={{ duration: 0.5, repeat: Infinity }} />
+          </motion.g>
+          <motion.g>
+            {/* SELL signal */}
+            <motion.rect x="41" y="45" width="18" height="12" rx="2" fill="currentColor" opacity={0.1}
+              animate={{ opacity: [0.1, 0.2, 0.1] }}
+              transition={{ duration: 2, delay: 0.5, repeat: Infinity }} />
+            <motion.text x="44" y="53" fill="currentColor" fontSize="5" fontFamily="monospace">SELL</motion.text>
+          </motion.g>
+          <motion.g>
+            {/* HOLD signal */}
+            <motion.rect x="62" y="45" width="18" height="12" rx="2" fill="currentColor" opacity={0.1}
+              animate={{ opacity: [0.1, 0.2, 0.1] }}
+              transition={{ duration: 2, delay: 1, repeat: Infinity }} />
+            <motion.text x="64" y="53" fill="currentColor" fontSize="5" fontFamily="monospace">HOLD</motion.text>
+          </motion.g>
+          {/* Confidence bar */}
+          <motion.rect x="20" y="62" width="60" height="6" rx="1" stroke="currentColor" strokeWidth="0.5" fill="none" opacity={0.3} />
+          <motion.rect x="20" y="62" width="0" height="6" rx="1" fill="currentColor" opacity={0.5}
+            animate={{ width: [0, 48, 48] }}
+            transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }} />
+          {/* Broadcast waves */}
+          {[0, 1, 2].map((i) => (
+            <motion.circle key={i} cx="85" cy="50" r={5 + i * 8} stroke="currentColor" fill="none" strokeWidth="1"
+              animate={{ r: [5 + i * 8, 10 + i * 8], opacity: [0.5 - i * 0.15, 0] }}
+              transition={{ duration: 1.5, delay: i * 0.3, repeat: Infinity }} />
+          ))}
+        </svg>
+      );
+    case 'agent':
+      return (
+        <svg viewBox="0 0 100 100" className="w-full h-full">
+          {/* Agent body/head */}
+          <motion.circle cx="50" cy="35" r="15" stroke="currentColor" strokeWidth="2" fill="none"
+            animate={{ strokeOpacity: [0.8, 1, 0.8] }}
+            transition={{ duration: 2, repeat: Infinity }} />
+          {/* Eyes - scanning */}
+          <motion.circle cx="44" cy="33" r="2" fill="currentColor"
+            animate={{ cx: [44, 46, 44] }}
+            transition={{ duration: 2, repeat: Infinity }} />
+          <motion.circle cx="56" cy="33" r="2" fill="currentColor"
+            animate={{ cx: [56, 54, 56] }}
+            transition={{ duration: 2, repeat: Infinity }} />
+          {/* Antenna */}
+          <motion.line x1="50" y1="20" x2="50" y2="12" stroke="currentColor" strokeWidth="1.5" />
+          <motion.circle cx="50" cy="10" r="3" fill="currentColor"
+            animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.2, 1] }}
+            transition={{ duration: 1, repeat: Infinity }} />
+          {/* Tool connections */}
+          <motion.path d="M35 40 Q20 50 25 65" stroke="currentColor" strokeWidth="1" fill="none" opacity={0.5}
+            animate={{ opacity: [0.3, 0.7, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }} />
+          <motion.path d="M65 40 Q80 50 75 65" stroke="currentColor" strokeWidth="1" fill="none" opacity={0.5}
+            animate={{ opacity: [0.3, 0.7, 0.3] }}
+            transition={{ duration: 2, delay: 0.5, repeat: Infinity }} />
+          <motion.path d="M50 50 L50 65" stroke="currentColor" strokeWidth="1" fill="none" opacity={0.5}
+            animate={{ opacity: [0.3, 0.7, 0.3] }}
+            transition={{ duration: 2, delay: 0.25, repeat: Infinity }} />
+          {/* Tool icons */}
+          <motion.rect x="18" y="65" width="14" height="10" rx="1" stroke="currentColor" strokeWidth="1" fill="none" opacity={0.4} />
+          <motion.text x="21" y="72" fill="currentColor" fontSize="5" opacity={0.6}>API</motion.text>
+          <motion.rect x="43" y="70" width="14" height="10" rx="1" stroke="currentColor" strokeWidth="1" fill="none" opacity={0.4} />
+          <motion.text x="46" y="77" fill="currentColor" fontSize="5" opacity={0.6}>RSS</motion.text>
+          <motion.rect x="68" y="65" width="14" height="10" rx="1" stroke="currentColor" strokeWidth="1" fill="none" opacity={0.4} />
+          <motion.text x="72" y="72" fill="currentColor" fontSize="5" opacity={0.6}>AI</motion.text>
+          {/* Thinking particles */}
+          {[[40, 25], [60, 25], [35, 30], [65, 30]].map(([x, y], i) => (
+            <motion.circle key={i} cx={x} cy={y} r="1" fill="currentColor"
+              animate={{ opacity: [0, 1, 0], y: [y, y - 5, y - 10] }}
+              transition={{ duration: 1.5, delay: i * 0.3, repeat: Infinity }} />
+          ))}
+          {/* Output document */}
+          <motion.rect x="35" y="82" width="30" height="12" rx="1" stroke="currentColor" strokeWidth="1" fill="none"
+            animate={{ opacity: [0.4, 0.8, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity }} />
+          <motion.line x1="38" y1="86" x2="55" y2="86" stroke="currentColor" strokeWidth="0.5" opacity={0.4} />
+          <motion.line x1="38" y1="90" x2="50" y2="90" stroke="currentColor" strokeWidth="0.5" opacity={0.4} />
+        </svg>
+      );
     default:
       return null;
   }
 }
 
-// Blueprint schematic card - large icon focused
+// Blueprint schematic card - large icon focused (original style)
 function BlueprintSchematic({
   project,
   index,
@@ -498,7 +694,7 @@ function BlueprintSchematic({
         scale: isVisible ? 1 : 0.8,
         y: isVisible ? 0 : 20
       }}
-      transition={{ delay: index * 0.12, duration: 0.5, ease: "easeOut" }}
+      transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
       onClick={onClick}
       className="relative cursor-pointer group h-full"
     >
@@ -763,9 +959,9 @@ export default function ProjectsSection({ progress }: ProjectsSectionProps) {
         </h1>
       </motion.div>
 
-      {/* Full-screen Grid Container */}
+      {/* Full-screen Grid Container - 5 columns x 2 rows */}
       <div className="relative flex-1 px-4 md:px-8 pb-4 flex items-center justify-center">
-        <div className="w-full max-w-6xl h-full max-h-[calc(100vh-180px)] grid grid-cols-2 md:grid-cols-4 grid-rows-2 gap-4 md:gap-6">
+        <div className="w-full max-w-7xl h-full max-h-[calc(100vh-180px)] grid grid-cols-2 md:grid-cols-5 grid-rows-2 md:grid-rows-2 gap-4 md:gap-5">
           {PROJECTS.map((project, index) => (
             <BlueprintSchematic
               key={project.id}
@@ -791,12 +987,12 @@ export default function ProjectsSection({ progress }: ProjectsSectionProps) {
         </div>
         <div className="w-px h-6 bg-white/20" />
         <div className="text-center">
-          <span className="text-2xl font-bold font-mono text-white">6</span>
+          <span className="text-2xl font-bold font-mono text-white">8</span>
           <span className="text-white/30 text-[10px] font-mono ml-2">LIVE</span>
         </div>
         <div className="w-px h-6 bg-white/20" />
         <div className="text-center">
-          <span className="text-2xl font-bold font-mono text-white">3+</span>
+          <span className="text-2xl font-bold font-mono text-white">2+</span>
           <span className="text-white/30 text-[10px] font-mono ml-2">IN DEVELOPMENT</span>
         </div>
       </motion.div>

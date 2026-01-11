@@ -3,9 +3,13 @@
 import dynamic from 'next/dynamic';
 import { Suspense, useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
+import LoadingScreen from '@/components/LoadingScreen';
 
 // Dynamic imports for better performance
-const NetworkScene = dynamic(() => import('@/components/3d/NetworkScene'), { ssr: false });
+const NetworkScene = dynamic(() => import('@/components/3d/NetworkScene'), {
+  ssr: false,
+  loading: () => null,
+});
 const SectionOverlays = dynamic(() => import('@/components/sections/SectionOverlays'), { ssr: false });
 
 // Story chapters - the journey through the network
@@ -373,6 +377,8 @@ function ScrollProgress({ progress, chapters }: { progress: number; chapters: ty
 }
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSlowConnection, setIsSlowConnection] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [currentChapter, setCurrentChapter] = useState(CHAPTERS_WITH_POSITIONS[0]);
   const [scrollProgressValue, setScrollProgressValue] = useState(0);
@@ -380,9 +386,43 @@ export default function Home() {
   const [sectionProgress, setSectionProgress] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Detect slow connection
+  useEffect(() => {
+    // Check Network Information API
+    const connection = (navigator as Navigator & { connection?: { effectiveType?: string; downlink?: number; saveData?: boolean } }).connection;
+    if (connection) {
+      const isSlowType = connection.effectiveType === '2g' || connection.effectiveType === 'slow-2g';
+      const isLowBandwidth = connection.downlink !== undefined && connection.downlink < 1.5;
+      const isSaveData = connection.saveData === true;
+      setIsSlowConnection(isSlowType || isLowBandwidth || isSaveData);
+    }
+
+    // Fallback: measure actual load time
+    const startTime = performance.now();
+    const checkLoadTime = () => {
+      const loadTime = performance.now() - startTime;
+      // If initial checks take more than 3 seconds, consider it slow
+      if (loadTime > 3000 && isLoading) {
+        setIsSlowConnection(true);
+      }
+    };
+    const timer = setTimeout(checkLoadTime, 3000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  // Handle loading complete
+  const handleLoadComplete = useCallback(() => {
+    setIsLoading(false);
+  }, []);
+
+  // Skip loading for slow connections
+  const handleSkipLoading = useCallback(() => {
+    setIsLoading(false);
+  }, []);
+
   // Prevent scrolling until user clicks Start
   useEffect(() => {
-    if (!hasStarted) {
+    if (!hasStarted || isLoading) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'auto';
@@ -390,7 +430,7 @@ export default function Home() {
     return () => {
       document.body.style.overflow = 'auto';
     };
-  }, [hasStarted]);
+  }, [hasStarted, isLoading]);
 
   // Total scroll height based on story duration
   const totalScrollHeight = 1000; // vh units - increased for longer scroll experience
@@ -459,21 +499,40 @@ export default function Home() {
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className="cursor-default"
-      style={{ height: `${totalScrollHeight}vh` }}
-    >
-      {/* 3D Network Scene with immersive worlds */}
-      <div className="fixed inset-0 z-0">
-        <Suspense fallback={null}>
-          <NetworkScene
-            scrollProgress={scrollYProgress}
-            chapters={CHAPTERS_WITH_POSITIONS}
-            isIntro={!hasStarted}
+    <>
+      {/* Loading Screen */}
+      <AnimatePresence>
+        {isLoading && (
+          <LoadingScreen
+            onLoadComplete={handleLoadComplete}
+            onSkipTo3D={handleSkipLoading}
+            isSlowConnection={isSlowConnection}
           />
-        </Suspense>
-      </div>
+        )}
+      </AnimatePresence>
+
+      <div
+        ref={containerRef}
+        className="cursor-default"
+        style={{ height: `${totalScrollHeight}vh` }}
+      >
+        {/* 3D Network Scene with immersive worlds */}
+        {/* pointer-events: none when started to allow touch scrolling on mobile */}
+        {/* Only render when loading is complete */}
+        {!isLoading && (
+          <div
+            className="fixed inset-0 z-0"
+            style={{ pointerEvents: hasStarted ? 'none' : 'auto' }}
+          >
+            <Suspense fallback={null}>
+              <NetworkScene
+                scrollProgress={scrollYProgress}
+                chapters={CHAPTERS_WITH_POSITIONS}
+                isIntro={!hasStarted}
+              />
+            </Suspense>
+          </div>
+        )}
 
       {/* Section Overlays - Full screen takeover for each section */}
       <SectionOverlays activeSection={activeSection} progress={sectionProgress} onReturnToMain={handleReturnToMain} />
@@ -551,6 +610,7 @@ export default function Home() {
           </a>
         ))}
       </motion.div>
-    </div>
+      </div>
+    </>
   );
 }
