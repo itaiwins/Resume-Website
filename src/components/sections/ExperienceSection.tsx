@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect, useRef } from 'react';
+import { useRef } from 'react';
 
 interface ExperienceSectionProps {
   progress: number;
@@ -230,37 +230,14 @@ function ExperienceCard({ experience, index, isVisible, isScrollExpanded }: {
 export default function ExperienceSection({ progress }: ExperienceSectionProps) {
   const isVisible = progress > 0.1;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [expandedIndex, setExpandedIndex] = useState(0);
 
-  // Track scroll position to auto-expand cards
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const scrollTop = container.scrollTop;
-      const containerHeight = container.clientHeight;
-
-      // Calculate which card should be expanded based on scroll position
-      // Each card is roughly 150px when collapsed, header is about 400px
-      const headerHeight = 400;
-      const cardHeight = 180;
-
-      if (scrollTop < headerHeight) {
-        setExpandedIndex(0);
-      } else {
-        const adjustedScroll = scrollTop - headerHeight + containerHeight * 0.3;
-        const newIndex = Math.min(
-          EXPERIENCE_DATA.length - 1,
-          Math.floor(adjustedScroll / cardHeight)
-        );
-        setExpandedIndex(Math.max(0, newIndex));
-      }
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  // Calculate expanded index based on progress prop from parent scroll
+  // Progress goes from 0 to 1 as user scrolls through the experience section
+  // We want to progressively expand cards as progress increases
+  const expandedIndex = Math.min(
+    EXPERIENCE_DATA.length - 1,
+    Math.floor(progress * (EXPERIENCE_DATA.length + 0.5))
+  );
 
   return (
     <div className="w-full h-full bg-[#0a0b0f] text-white overflow-hidden flex flex-col">
