@@ -61,7 +61,13 @@ const sans = 'var(--lab-sans), system-ui, sans-serif';
  * sold with an opacity ramp written straight to the DOM node — no React
  * state, so it costs nothing per frame.
  */
-function useDistanceFade(ref: React.RefObject<HTMLDivElement | null>, worldZ: number, x: number) {
+function useDistanceFade(
+  ref: React.RefObject<HTMLDivElement | null>,
+  worldZ: number,
+  x: number,
+  near = 9,
+  span = 5,
+) {
   const { camera } = useThree();
   const target = useMemo(() => new THREE.Vector3(x, 0, worldZ), [x, worldZ]);
   const current = useRef(0);
@@ -73,7 +79,7 @@ function useDistanceFade(ref: React.RefObject<HTMLDivElement | null>, worldZ: nu
     // before the next sheet's station at ~25. HTML panels can't be
     // occluded, so an out-of-range panel has to reach exactly zero or it
     // ghosts through the one in front.
-    const want = THREE.MathUtils.clamp(1 - (d - 9) / 5, 0, 1);
+    const want = THREE.MathUtils.clamp(1 - (d - near) / span, 0, 1);
     current.current = damp(current.current, want, 5, Math.min(delta, 1 / 30));
     ref.current.style.opacity = String(current.current);
   });
@@ -290,7 +296,7 @@ function ConstructionGrid({ depth }: { depth: number }) {
 
 function Opening() {
   const el = useRef<HTMLDivElement>(null);
-  useDistanceFade(el, 0, 0);
+  useDistanceFade(el, 0, 0, 12, 5);
   return (
     <group position={[0, 0, 0]}>
       <Html transform scale={panelScale(9.4, 1000)} style={{ width: 1000, pointerEvents: 'none' }} zIndexRange={[20, 0]}>
