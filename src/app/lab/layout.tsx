@@ -1,5 +1,15 @@
 import localFont from 'next/font/local';
+import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+
+// The root layout still describes the old site ("neural network of
+// technology and finance"), which shows up in the tab while you're
+// reviewing its replacement. Override it here.
+export const metadata: Metadata = {
+  title: 'Concept Lab — Portfolio Rebuild',
+  description: 'Three 3D scroll directions for the portfolio rebuild.',
+  robots: { index: false, follow: false },
+};
 
 // Self-hosted so the lab renders identically offline and in CI.
 const sans = localFont({
