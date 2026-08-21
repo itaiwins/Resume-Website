@@ -43,7 +43,20 @@ export default function LabIndex() {
         fontFamily: 'var(--lab-sans), system-ui, sans-serif',
         padding: '80px 32px 120px',
       }}
+      className="lab-index"
     >
+      <style>{`
+        @media (max-width: 720px) {
+          .lab-index { padding: 44px 18px 80px !important; }
+          .lab-index .card { padding: 22px 18px !important; }
+          /* Stack the row: the OPEN affordance runs off a phone otherwise. */
+          .lab-index .row { flex-direction: column; gap: 14px !important; }
+          .lab-index .open { align-self: flex-start; }
+          .lab-index h1 { font-size: 38px !important; }
+          .lab-index h2 { font-size: 24px !important; }
+          .lab-index .lede { font-size: 16px !important; }
+        }
+      `}</style>
       <div style={{ maxWidth: 1080, margin: '0 auto' }}>
         <div
           style={{
@@ -58,7 +71,7 @@ export default function LabIndex() {
         <h1 style={{ fontSize: 56, fontWeight: 600, letterSpacing: '-0.04em', margin: '20px 0 16px' }}>
           Three directions
         </h1>
-        <p style={{ fontSize: 18, color: '#9A9AA4', maxWidth: 720, lineHeight: 1.6, margin: 0 }}>
+        <p className="lede" style={{ fontSize: 18, color: '#9A9AA4', maxWidth: 720, lineHeight: 1.6, margin: 0 }}>
           All three are real scroll-driven 3D, all three put the content in the scene as
           geometry rather than fading to a flat overlay, and all three carry the same
           eight projects. Scroll each one end to end, then pick — the winner becomes the
@@ -80,6 +93,7 @@ export default function LabIndex() {
             <Link
               key={c.slug}
               href={`/lab/${c.slug}`}
+              className="card"
               style={{
                 display: 'block',
                 border: '1px solid #26262C',
@@ -89,7 +103,7 @@ export default function LabIndex() {
                 textDecoration: 'none',
               }}
             >
-              <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
+              <div className="row" style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
                 <div
                   style={{
                     fontFamily: 'var(--lab-mono), monospace',
@@ -100,7 +114,8 @@ export default function LabIndex() {
                 >
                   {c.letter}
                 </div>
-                <div style={{ flex: 1 }}>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <h2 style={{ fontSize: 30, fontWeight: 600, letterSpacing: '-0.03em', margin: 0 }}>
                     {c.name}
                   </h2>
@@ -148,6 +163,7 @@ export default function LabIndex() {
                   </div>
                 </div>
                 <div
+                  className="open"
                   style={{
                     fontFamily: 'var(--lab-mono), monospace',
                     fontSize: 12,
