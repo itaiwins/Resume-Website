@@ -6,10 +6,13 @@ import {
   useRef,
   useEffect,
   useMemo,
+  useState,
+  useSyncExternalStore,
   type ReactNode,
   type MutableRefObject,
 } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 export const FONTS = {
@@ -159,12 +162,15 @@ export function SplineCamera({
 /** Small parallax offset driven by pointer, applied on top of the rig. */
 export function PointerParallax({ strength = 0.35, lambda = 3 }) {
   const { camera } = useThree();
+  const enabled = !useIsTouch();
   const target = useRef(new THREE.Vector2());
   const current = useRef(new THREE.Vector2());
   const applied = useRef(new THREE.Vector3());
 
   useEffect(() => {
+    if (!enabled) return;
     const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
       target.current.set(
         (e.clientX / window.innerWidth) * 2 - 1,
         (e.clientY / window.innerHeight) * 2 - 1,
@@ -172,9 +178,10 @@ export function PointerParallax({ strength = 0.35, lambda = 3 }) {
     };
     window.addEventListener('pointermove', onMove);
     return () => window.removeEventListener('pointermove', onMove);
-  }, []);
+  }, [enabled]);
 
   useFrame((_, delta) => {
+    if (!enabled) return;
     const dt = Math.min(delta, 1 / 30);
     current.current.x = damp(current.current.x, target.current.x, lambda, dt);
     current.current.y = damp(current.current.y, target.current.y, lambda, dt);
@@ -203,7 +210,7 @@ export function ScrollStage({
   dom,
   background,
   fov = 45,
-  dpr = [1, 2] as [number, number],
+  dpr,
   onScroll,
 }: {
   /** Scroll length in viewport heights. */
@@ -217,6 +224,7 @@ export function ScrollStage({
    *  never have to mutate the camera object. */
   fov?: number;
   dpr?: [number, number];
+  /** @internal */
   onScroll?: (t: number) => void;
 }) {
   const progress = useRef(0);
@@ -244,6 +252,10 @@ export function ScrollStage({
   }, [onScroll]);
 
   const ctx = useMemo(() => ({ progress, pages }), [pages]);
+  const touch = useIsTouch();
+  // Phones render this at 3x device pixel ratio otherwise, which is the
+  // difference between 60fps and a slideshow.
+  const resolvedDpr = dpr ?? (touch ? ([1, 1.6] as [number, number]) : ([1, 2] as [number, number]));
 
   return (
     <ScrollContext.Provider value={ctx}>
@@ -253,10 +265,13 @@ export function ScrollStage({
             position: 'fixed',
             inset: 0,
             zIndex: 0,
+            // Let vertical drags scroll the page; the canvas only needs
+            // taps, for the links inside panels.
+            touchAction: 'pan-y',
           }}
         >
           <Canvas
-            dpr={dpr}
+            dpr={resolvedDpr}
             gl={{
               antialias: true,
               powerPreference: 'high-performance',
@@ -270,7 +285,7 @@ export function ScrollStage({
         {dom}
 
         {/* Scroll driver. Nothing renders here — it only gives the page height. */}
-        <div style={{ height: `${pages * 100}vh`, pointerEvents: 'none' }} />
+        <div style={{ height: `${pages * 100}svh`, pointerEvents: 'none' }} />
       </div>
     </ScrollContext.Provider>
   );
@@ -407,4 +422,153 @@ export function StationCamera({
   });
 
   return null;
+}
+
+/* ------------------------------------------------------------------ *
+ * Responsive panels
+ *
+ * A panel's world size was originally a hand-tuned constant, which only
+ * works at the aspect ratio it was tuned at. On a portrait phone the
+ * frame is roughly 0.46 as wide as it is tall instead of 1.6, so a
+ * landscape panel overflows by ~3x and you see a fragment of its middle.
+ *
+ * Rather than move the camera (which would wreck the choreography that
+ * makes each concept feel authored), the panel is scaled to the frame:
+ * measure the content, work out how much world space the frame covers at
+ * this panel's viewing distance, and pick the scale that fits. Same
+ * camera path on every device; the content resizes to meet it.
+ * ------------------------------------------------------------------ */
+
+/** Viewport shape, outside the Canvas. Drives layout, so it re-renders. */
+export function useViewport() {
+  const [vp, setVp] = useState(() => ({
+    portrait: false,
+    narrow: false,
+    aspect: 16 / 9,
+    width: 1440,
+  }));
+
+  useEffect(() => {
+    const read = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      setVp({ portrait: h > w, narrow: w < 820, aspect: w / h, width: w });
+    };
+    read();
+    window.addEventListener('resize', read);
+    window.addEventListener('orientationchange', read);
+    return () => {
+      window.removeEventListener('resize', read);
+      window.removeEventListener('orientationchange', read);
+    };
+  }, []);
+
+  return vp;
+}
+
+// matchMedia is external state, so subscribe to it properly rather than
+// syncing it into React state from an effect.
+const TOUCH_QUERY = '(hover: none)';
+const subscribeTouch = (onChange: () => void) => {
+  const mq = window.matchMedia(TOUCH_QUERY);
+  mq.addEventListener('change', onChange);
+  return () => mq.removeEventListener('change', onChange);
+};
+
+export function useIsTouch() {
+  return useSyncExternalStore(
+    subscribeTouch,
+    () => window.matchMedia(TOUCH_QUERY).matches,
+    () => false,
+  );
+}
+
+/**
+ * A panel that always fits the frame, and fades with camera distance.
+ *
+ * `viewDistance` is how far the camera parks from this panel — the fit is
+ * solved at that distance, so the panel is sized for the moment it's
+ * actually being read.
+ */
+export function FitPanel({
+  position,
+  rotation = [0, 0, 0],
+  pxWidth,
+  viewDistance,
+  fill = 0.92,
+  fadeNear,
+  fadeSpan,
+  zIndexRange = [20, 0] as [number, number],
+  children,
+}: {
+  position: [number, number, number];
+  rotation?: [number, number, number];
+  /** CSS width the content is designed at. */
+  pxWidth: number;
+  viewDistance: number;
+  /** Fraction of the frame the panel may occupy. */
+  fill?: number;
+  fadeNear: number;
+  fadeSpan: number;
+  zIndexRange?: [number, number];
+  children: ReactNode;
+}) {
+  const inner = useRef<HTMLDivElement>(null);
+  const { camera, size } = useThree();
+  const [pxHeight, setPxHeight] = useState(0);
+
+  // Measure rather than assume: blurb lengths differ per project, so a
+  // declared height would be wrong for most of them.
+  useEffect(() => {
+    const el = inner.current;
+    if (!el) return;
+    // ResizeObserver fires once on observe, so the initial measurement
+    // arrives through the callback — no synchronous setState needed.
+    const ro = new ResizeObserver(() => setPxHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const scale = useMemo(() => {
+    const fov = (camera as THREE.PerspectiveCamera).fov ?? 45;
+    const aspect = size.width / Math.max(1, size.height);
+    const halfV = Math.tan((fov * Math.PI) / 360);
+    const visH = 2 * viewDistance * halfV;
+    const visW = visH * aspect;
+    const byW = (visW * fill) / (pxWidth * (1 / HTML_PX_RATIO));
+    const byH = pxHeight > 0 ? (visH * fill) / (pxHeight * (1 / HTML_PX_RATIO)) : byW;
+    return Math.min(byW, byH);
+  }, [camera, size.width, size.height, viewDistance, fill, pxWidth, pxHeight]);
+
+  // Resolve the panel's WORLD position from its own matrix rather than
+  // trusting the `position` prop: a panel nested inside an already
+  // transformed group (a slab face, say) has a local position that is
+  // nowhere near where it actually sits, and measuring the fade against
+  // that makes panels ghost through each other.
+  const group = useRef<THREE.Group>(null);
+  const world = useRef(new THREE.Vector3());
+  const cur = useRef(0);
+  useFrame((_, delta) => {
+    if (!inner.current || !group.current) return;
+    group.current.getWorldPosition(world.current);
+    const d = camera.position.distanceTo(world.current);
+    const want = THREE.MathUtils.clamp(1 - (d - fadeNear) / fadeSpan, 0, 1);
+    cur.current = damp(cur.current, want, 5, Math.min(delta, 1 / 30));
+    inner.current.style.opacity = String(cur.current);
+  });
+
+  return (
+    <group ref={group} position={position} rotation={rotation}>
+      <Html
+        transform
+        scale={scale}
+        style={{ width: pxWidth, pointerEvents: 'none' }}
+        zIndexRange={zIndexRange}
+      >
+        <div ref={inner} style={{ opacity: 0 }}>
+          {children}
+        </div>
+      </Html>
+    </group>
+  );
 }

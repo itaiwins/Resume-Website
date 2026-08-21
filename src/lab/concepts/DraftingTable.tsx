@@ -15,11 +15,9 @@
  * the same way instead of fighting.
  */
 
-import { useRef, useState, useMemo } from 'react';
-import { Line, Html } from '@react-three/drei';
-import { useFrame, useThree } from '@react-three/fiber';
-import * as THREE from 'three';
-import { ScrollStage, StationCamera, PointerParallax, panelScale, damp, type Station } from '../rig';
+import { useState, useMemo } from 'react';
+import { Line } from '@react-three/drei';
+import { ScrollStage, StationCamera, PointerParallax, FitPanel, useViewport, type Station } from '../rig';
 import { FactSheet, FactSheetTrigger, type Theme } from '../FactSheet';
 import { IDENTITY, PROJECTS, FACTS, type Project } from '../content';
 
@@ -39,10 +37,9 @@ const theme: Theme = {
   accentFg: '#FFFFFF',
 };
 
-const SHEET_W = 7.6;
-const SHEET_PX = 950;
 const SPACING = 17;
-const SCALE = panelScale(SHEET_W, SHEET_PX);
+/** How far the camera parks from a sheet. FitPanel solves the fit here. */
+const VIEW_D = 7.6;
 
 function sheetTransform(i: number) {
   const side = i % 2 === 0 ? 1 : -1;
@@ -55,35 +52,6 @@ function sheetTransform(i: number) {
 
 const mono = 'var(--lab-mono), ui-monospace, monospace';
 const sans = 'var(--lab-sans), system-ui, sans-serif';
-
-/**
- * Fades a panel by camera distance. HTML can't take fog, so depth gets
- * sold with an opacity ramp written straight to the DOM node — no React
- * state, so it costs nothing per frame.
- */
-function useDistanceFade(
-  ref: React.RefObject<HTMLDivElement | null>,
-  worldZ: number,
-  x: number,
-  near = 9,
-  span = 5,
-) {
-  const { camera } = useThree();
-  const target = useMemo(() => new THREE.Vector3(x, 0, worldZ), [x, worldZ]);
-  const current = useRef(0);
-
-  useFrame((_, delta) => {
-    if (!ref.current) return;
-    const d = camera.position.distanceTo(target);
-    // Solid at the 7.6-unit viewing standoff, fully gone by 14 — well
-    // before the next sheet's station at ~25. HTML panels can't be
-    // occluded, so an out-of-range panel has to reach exactly zero or it
-    // ghosts through the one in front.
-    const want = THREE.MathUtils.clamp(1 - (d - near) / span, 0, 1);
-    current.current = damp(current.current, want, 5, Math.min(delta, 1 / 30));
-    ref.current.style.opacity = String(current.current);
-  });
-}
 
 function StatusStamp({ status }: { status: Project['status'] }) {
   const live = status !== 'private';
@@ -104,13 +72,25 @@ function StatusStamp({ status }: { status: Project['status'] }) {
   );
 }
 
-function Figure({ value, label, big }: { value: string; label: string; big?: boolean }) {
+function Figure({
+  value,
+  label,
+  big,
+  compact,
+  align = 'right',
+}: {
+  value: string;
+  label: string;
+  big?: boolean;
+  compact?: boolean;
+  align?: 'left' | 'right';
+}) {
   return (
-    <div style={{ textAlign: 'right' }}>
+    <div style={{ textAlign: align }}>
       <div
         style={{
           fontFamily: sans,
-          fontSize: big ? 68 : 26,
+          fontSize: big ? (compact ? 48 : 68) : 26,
           fontWeight: 600,
           letterSpacing: '-0.04em',
           lineHeight: 1,
@@ -135,24 +115,39 @@ function Figure({ value, label, big }: { value: string; label: string; big?: boo
   );
 }
 
-function Sheet({ project, index }: { project: Project; index: number }) {
+function Sheet({
+  project,
+  index,
+  portrait,
+  pxWidth,
+}: {
+  project: Project;
+  index: number;
+  portrait: boolean;
+  pxWidth: number;
+}) {
   const { position, rotation } = sheetTransform(index);
-  const el = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState(false);
-  useDistanceFade(el, position[2], position[0]);
 
   const href = project.href ?? project.repo;
 
   return (
-    <group position={position} rotation={rotation}>
-      <Html transform scale={SCALE} style={{ width: SHEET_PX, pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+    <FitPanel
+      position={position}
+      // Square-on in portrait: a phone frame is too narrow to read a
+      // sheet that is also turned away from you.
+      rotation={portrait ? [0, 0, 0] : rotation}
+      pxWidth={pxWidth}
+      viewDistance={VIEW_D}
+      fill={portrait ? 0.95 : 0.86}
+      fadeNear={9}
+      fadeSpan={5}
+    >
         <div
-          ref={el}
           style={{
-            opacity: 0,
             background: SHEET_BG,
             border: `1px solid ${INK}`,
-            padding: 14,
+            padding: portrait ? 8 : 14,
             boxShadow: hover
               ? '0 30px 60px -20px rgba(21,23,27,0.28)'
               : '0 20px 44px -24px rgba(21,23,27,0.22)',
@@ -160,7 +155,7 @@ function Sheet({ project, index }: { project: Project; index: number }) {
           }}
         >
           {/* inner margin rule, as on a real sheet */}
-          <div style={{ border: `1px solid ${RULE}`, padding: '26px 30px 0' }}>
+          <div style={{ border: `1px solid ${RULE}`, padding: portrait ? '18px 18px 0' : '26px 30px 0' }}>
             {/* header row */}
             <div
               style={{
@@ -180,13 +175,20 @@ function Sheet({ project, index }: { project: Project; index: number }) {
               <StatusStamp status={project.status} />
             </div>
 
-            {/* body */}
-            <div style={{ display: 'flex', gap: 44, marginTop: 26 }}>
+            {/* body — columns side by side on a wide frame, stacked on a phone */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: portrait ? 'column' : 'row',
+                gap: portrait ? 22 : 44,
+                marginTop: portrait ? 18 : 26,
+              }}
+            >
               <div style={{ flex: '1 1 0', minWidth: 0 }}>
                 <h2
                   style={{
                     fontFamily: sans,
-                    fontSize: 58,
+                    fontSize: portrait ? 40 : 58,
                     fontWeight: 600,
                     letterSpacing: '-0.035em',
                     lineHeight: 1,
@@ -199,10 +201,10 @@ function Sheet({ project, index }: { project: Project; index: number }) {
                 <p
                   style={{
                     fontFamily: sans,
-                    fontSize: 15.5,
+                    fontSize: portrait ? 14.5 : 15.5,
                     lineHeight: 1.62,
                     color: GRAPHITE,
-                    margin: '18px 0 0',
+                    margin: portrait ? '12px 0 0' : '18px 0 0',
                   }}
                 >
                   {project.blurb}
@@ -210,18 +212,43 @@ function Sheet({ project, index }: { project: Project; index: number }) {
               </div>
 
               <div
-                style={{
-                  flex: '0 0 232px',
-                  borderLeft: `1px solid ${RULE}`,
-                  paddingLeft: 28,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 22,
-                }}
+                style={
+                  portrait
+                    ? {
+                        // A row of three overflows a phone; the headline
+                        // figure takes its own line and the supports pair up.
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '18px 20px',
+                        borderTop: `1px solid ${RULE}`,
+                        paddingTop: 18,
+                      }
+                    : {
+                        flex: '0 0 232px',
+                        borderLeft: `1px solid ${RULE}`,
+                        paddingLeft: 28,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 22,
+                      }
+                }
               >
-                <Figure value={project.metric.value} label={project.metric.label} big />
+                <div style={portrait ? { gridColumn: '1 / -1' } : undefined}>
+                  <Figure
+                    value={project.metric.value}
+                    label={project.metric.label}
+                    big
+                    compact={portrait}
+                    align={portrait ? 'left' : 'right'}
+                  />
+                </div>
                 {project.support.map((s) => (
-                  <Figure key={s.label} value={s.value} label={s.label} />
+                  <Figure
+                    key={s.label}
+                    value={s.value}
+                    label={s.label}
+                    align={portrait ? 'left' : 'right'}
+                  />
                 ))}
               </div>
             </div>
@@ -229,12 +256,14 @@ function Sheet({ project, index }: { project: Project; index: number }) {
             {/* title block */}
             <div
               style={{
-                marginTop: 30,
+                marginTop: portrait ? 20 : 30,
                 borderTop: `1px solid ${INK}`,
                 display: 'flex',
+                flexDirection: portrait ? 'column' : 'row',
+                gap: portrait ? 14 : 0,
                 justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '14px 0 22px',
+                alignItems: portrait ? 'flex-start' : 'center',
+                padding: portrait ? '12px 0 18px' : '14px 0 22px',
                 fontFamily: mono,
                 fontSize: 11.5,
                 letterSpacing: '0.08em',
@@ -272,8 +301,7 @@ function Sheet({ project, index }: { project: Project; index: number }) {
             </div>
           </div>
         </div>
-      </Html>
-    </group>
+    </FitPanel>
   );
 }
 
@@ -294,13 +322,17 @@ function ConstructionGrid({ depth }: { depth: number }) {
   );
 }
 
-function Opening() {
-  const el = useRef<HTMLDivElement>(null);
-  useDistanceFade(el, 0, 0, 12, 5);
+function Opening({ portrait, pxWidth }: { portrait: boolean; pxWidth: number }) {
   return (
-    <group position={[0, 0, 0]}>
-      <Html transform scale={panelScale(9.4, 1000)} style={{ width: 1000, pointerEvents: 'none' }} zIndexRange={[20, 0]}>
-        <div ref={el} style={{ opacity: 0, textAlign: 'center', fontFamily: sans, color: INK }}>
+    <FitPanel
+      position={[0, 0, 0]}
+      pxWidth={pxWidth}
+      viewDistance={10.5}
+      fill={portrait ? 0.94 : 0.84}
+      fadeNear={12}
+      fadeSpan={5}
+    >
+        <div style={{ textAlign: 'center', fontFamily: sans, color: INK }}>
           <div
             style={{
               fontFamily: mono,
@@ -312,7 +344,15 @@ function Opening() {
           >
             DRAWING SET · 2026
           </div>
-          <h1 style={{ fontSize: 132, fontWeight: 600, letterSpacing: '-0.05em', lineHeight: 0.92, margin: 0 }}>
+          <h1
+            style={{
+              fontSize: portrait ? 62 : 132,
+              fontWeight: 600,
+              letterSpacing: '-0.05em',
+              lineHeight: 0.92,
+              margin: 0,
+            }}
+          >
             {IDENTITY.name}
           </h1>
           <div
@@ -327,14 +367,35 @@ function Opening() {
           >
             {IDENTITY.role}
           </div>
-          <p style={{ fontSize: 21, color: GRAPHITE, margin: 0 }}>{IDENTITY.focus}</p>
+          <p style={{ fontSize: portrait ? 16 : 21, color: GRAPHITE, margin: 0 }}>{IDENTITY.focus}</p>
 
-          <div style={{ width: 190, height: 2, background: RED, margin: '44px auto' }} />
+          <div
+            style={{
+              width: portrait ? 120 : 190,
+              height: 2,
+              background: RED,
+              margin: portrait ? '30px auto' : '44px auto',
+            }}
+          />
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 68 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: portrait ? '1fr 1fr' : 'repeat(4, auto)',
+              justifyContent: 'center',
+              gap: portrait ? '24px 30px' : '0 68px',
+            }}
+          >
             {FACTS.map((f) => (
               <div key={f.label}>
-                <div style={{ fontSize: 46, fontWeight: 600, letterSpacing: '-0.04em', lineHeight: 1 }}>
+                <div
+                  style={{
+                    fontSize: portrait ? 34 : 46,
+                    fontWeight: 600,
+                    letterSpacing: '-0.04em',
+                    lineHeight: 1,
+                  }}
+                >
                   {f.value}
                 </div>
                 <div
@@ -353,22 +414,32 @@ function Opening() {
             ))}
           </div>
         </div>
-      </Html>
-    </group>
+    </FitPanel>
   );
 }
 
-function Closing({ z }: { z: number }) {
-  const el = useRef<HTMLDivElement>(null);
-  useDistanceFade(el, z, 0);
+function Closing({ z, portrait, pxWidth }: { z: number; portrait: boolean; pxWidth: number }) {
   return (
-    <group position={[0, 0, z]}>
-      <Html transform scale={panelScale(8.6, 900)} style={{ width: 900, pointerEvents: 'none' }} zIndexRange={[20, 0]}>
-        <div ref={el} style={{ opacity: 0, textAlign: 'center', fontFamily: sans, color: INK }}>
+    <FitPanel
+      position={[0, 0, z]}
+      pxWidth={pxWidth}
+      viewDistance={8.5}
+      fill={portrait ? 0.94 : 0.84}
+      fadeNear={10}
+      fadeSpan={5}
+    >
+        <div style={{ textAlign: 'center', fontFamily: sans, color: INK }}>
           <div style={{ fontFamily: mono, fontSize: 12, letterSpacing: '0.3em', color: GRAPHITE }}>
             END OF SET
           </div>
-          <h2 style={{ fontSize: 92, fontWeight: 600, letterSpacing: '-0.045em', margin: '22px 0 30px' }}>
+          <h2
+            style={{
+              fontSize: portrait ? 52 : 92,
+              fontWeight: 600,
+              letterSpacing: '-0.045em',
+              margin: '22px 0 30px',
+            }}
+          >
             Let&apos;s talk.
           </h2>
           <a
@@ -407,14 +478,19 @@ function Closing({ z }: { z: number }) {
             <span>{IDENTITY.location.toUpperCase()}</span>
           </div>
         </div>
-      </Html>
-    </group>
+    </FitPanel>
   );
 }
 
 export default function DraftingTable() {
   const [open, setOpen] = useState(false);
   const [pct, setPct] = useState(0);
+  const { portrait, narrow, width } = useViewport();
+
+  // Design the panel at close to the device's own CSS width, so a 15px
+  // rule renders at roughly 15px on screen instead of being scaled down
+  // into illegibility.
+  const pxWidth = portrait ? Math.min(Math.max(width - 24, 300), 560) : 950;
 
   const endZ = -19 - PROJECTS.length * SPACING - 4;
 
@@ -424,11 +500,16 @@ export default function DraftingTable() {
       const { position, side } = sheetTransform(i);
       // Stand off along the sheet's own normal so it is seen square-on.
       // 7.6 units clears both the 7.6-wide and 4.5-tall extents at fov 42.
-      const yaw = -side * 0.3;
+      // Portrait turns the sheets square-on, so the camera comes straight
+      // at them rather than along a rotated normal.
+      const yaw = portrait ? 0 : -side * 0.3;
       const n: [number, number, number] = [Math.sin(yaw), 0, Math.cos(yaw)];
-      const d = 7.6;
       out.push({
-        at: [position[0] + n[0] * d, position[1] + n[1] * d, position[2] + n[2] * d],
+        at: [
+          position[0] + n[0] * VIEW_D,
+          position[1] + n[1] * VIEW_D,
+          position[2] + n[2] * VIEW_D,
+        ],
         look: position,
         travel: 2.2,
         dwell: 4,
@@ -436,7 +517,7 @@ export default function DraftingTable() {
     });
     out.push({ at: [0, 0, endZ + 8.5], look: [0, 0, endZ], travel: 2.2, dwell: 3 });
     return out;
-  }, [endZ]);
+  }, [endZ, portrait]);
 
   return (
     <div className="lab-root">
@@ -456,9 +537,9 @@ export default function DraftingTable() {
                 zIndex: 100,
                 display: 'flex',
                 justifyContent: 'space-between',
-                padding: '22px 28px',
+                padding: narrow ? '14px 16px' : '22px 28px',
                 fontFamily: mono,
-                fontSize: 11,
+                fontSize: narrow ? 9.5 : 11,
                 letterSpacing: '0.16em',
                 color: GRAPHITE,
                 pointerEvents: 'none',
@@ -478,6 +559,7 @@ export default function DraftingTable() {
                 height: 210,
                 width: 1,
                 background: RULE,
+                display: narrow ? 'none' : 'block',
               }}
             >
               <div
@@ -505,6 +587,22 @@ export default function DraftingTable() {
               </span>
             </div>
 
+            {narrow && (
+              <div
+                style={{
+                  position: 'fixed',
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 2,
+                  zIndex: 100,
+                  background: RULE,
+                }}
+              >
+                <div style={{ height: '100%', width: `${pct * 100}%`, background: RED }} />
+              </div>
+            )}
+
             <FactSheetTrigger theme={theme} onOpen={() => setOpen(true)} />
             <FactSheet theme={theme} open={open} onClose={() => setOpen(false)} />
           </>
@@ -514,11 +612,11 @@ export default function DraftingTable() {
         <StationCamera stations={stations} lambda={11} />
         <PointerParallax strength={0.2} />
         <ConstructionGrid depth={-endZ + 20} />
-        <Opening />
+        <Opening portrait={portrait} pxWidth={pxWidth} />
         {PROJECTS.map((p, i) => (
-          <Sheet key={p.id} project={p} index={i} />
+          <Sheet key={p.id} project={p} index={i} portrait={portrait} pxWidth={pxWidth} />
         ))}
-        <Closing z={endZ} />
+        <Closing z={endZ} portrait={portrait} pxWidth={pxWidth} />
       </ScrollStage>
     </div>
   );

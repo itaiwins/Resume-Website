@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { IDENTITY, PROJECTS, TIMELINE, CAPABILITIES } from './content';
+import { useViewport } from './rig';
 
 export type Theme = {
   bg: string;
@@ -30,6 +31,8 @@ export function FactSheet({
   open: boolean;
   onClose: () => void;
 }) {
+  const { narrow } = useViewport();
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -56,10 +59,11 @@ export function FactSheet({
         background: theme.bg,
         color: theme.fg,
         overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
         fontFamily: 'var(--lab-sans)',
       }}
     >
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '64px 32px 120px' }}>
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: narrow ? '28px 18px 90px' : '64px 32px 120px' }}>
         <button
           onClick={onClose}
           style={{
@@ -81,10 +85,10 @@ export function FactSheet({
         </button>
 
         <header style={{ marginBottom: 56 }}>
-          <h1 style={{ fontSize: 40, fontWeight: 600, letterSpacing: '-0.03em', marginBottom: 8 }}>
+          <h1 style={{ fontSize: narrow ? 30 : 40, fontWeight: 600, letterSpacing: '-0.03em', marginBottom: 8 }}>
             {IDENTITY.name}
           </h1>
-          <p style={{ fontSize: 18, color: theme.muted, marginBottom: 20 }}>
+          <p style={{ fontSize: narrow ? 16 : 18, color: theme.muted, marginBottom: 20 }}>
             {IDENTITY.role} — {IDENTITY.focus}
           </p>
           <div
@@ -275,8 +279,8 @@ export function FactSheetTrigger({ theme, onOpen }: { theme: Theme; onOpen: () =
       onMouseLeave={() => setHover(false)}
       style={{
         position: 'fixed',
-        right: 24,
-        bottom: 24,
+        right: 16,
+        bottom: 16,
         zIndex: 100,
         fontFamily: 'var(--lab-mono)',
         fontSize: 11,

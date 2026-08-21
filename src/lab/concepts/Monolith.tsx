@@ -14,11 +14,17 @@
  * done with a colour that reads 2026 rather than 2014.
  */
 
-import { useRef, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Html } from '@react-three/drei';
-import { useFrame, useThree } from '@react-three/fiber';
-import * as THREE from 'three';
-import { ScrollStage, StationCamera, PointerParallax, panelScale, damp, type Station } from '../rig';
+import {
+  ScrollStage,
+  StationCamera,
+  PointerParallax,
+  FitPanel,
+  useViewport,
+  panelScale,
+  type Station,
+} from '../rig';
 import { FactSheet, FactSheetTrigger, type Theme } from '../FactSheet';
 import { IDENTITY, PROJECTS, FACTS, type Project } from '../content';
 
@@ -46,6 +52,8 @@ const SLAB_H = 26;
 const SLAB_D = 2.2;
 const GAP = 26;
 const CANYON = 9; // half-width of the corridor the camera flies down
+/** Standoff from a slab face; FitPanel solves the panel fit at this distance. */
+const VIEW_D = 13;
 
 function slabTransform(i: number) {
   const side = i % 2 === 0 ? -1 : 1;
@@ -58,32 +66,22 @@ function slabTransform(i: number) {
   };
 }
 
-function useDistanceFade(
-  ref: React.RefObject<HTMLDivElement | null>,
-  at: [number, number, number],
-  near = 14,
-  span = 6,
-) {
-  const { camera } = useThree();
-  const target = useMemo(() => new THREE.Vector3(...at), [at]);
-  const cur = useRef(0);
-  useFrame((_, delta) => {
-    if (!ref.current) return;
-    const d = camera.position.distanceTo(target);
-    const want = THREE.MathUtils.clamp(1 - (d - near) / span, 0, 1);
-    cur.current = damp(cur.current, want, 5, Math.min(delta, 1 / 30));
-    ref.current.style.opacity = String(cur.current);
-  });
-}
-
-function Slab({ project, index }: { project: Project; index: number }) {
+function Slab({
+  project,
+  index,
+  portrait,
+  pxWidth,
+}: {
+  project: Project;
+  index: number;
+  portrait: boolean;
+  pxWidth: number;
+}) {
   const { position, rotation, side } = slabTransform(index);
-  const el = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState(false);
 
   // Panel sits just proud of the inward-facing face.
   const faceOffset = SLAB_D / 2 + 0.06;
-  useDistanceFade(el, position, 14, 6);
 
   const href = project.href ?? project.repo;
   const live = project.status !== 'private';
@@ -101,14 +99,15 @@ function Slab({ project, index }: { project: Project; index: number }) {
         <meshBasicMaterial color={LIME} />
       </mesh>
 
-      <Html
-        transform
+      <FitPanel
         position={[0, 0, faceOffset]}
-        scale={panelScale(SLAB_W - 1.6, 1000)}
-        style={{ width: 1000, pointerEvents: 'none' }}
-        zIndexRange={[20, 0]}
+        pxWidth={pxWidth}
+        viewDistance={VIEW_D}
+        fill={portrait ? 0.93 : 0.85}
+        fadeNear={14}
+        fadeSpan={6}
       >
-        <div ref={el} style={{ opacity: 0, fontFamily: sans, color: BONE }}>
+        <div style={{ fontFamily: sans, color: BONE }}>
           <div
             style={{
               display: 'flex',
@@ -129,7 +128,7 @@ function Slab({ project, index }: { project: Project; index: number }) {
           <h2
             style={{
               fontFamily: serif,
-              fontSize: 124,
+              fontSize: portrait ? 68 : 124,
               fontWeight: 400,
               lineHeight: 0.88,
               letterSpacing: '-0.02em',
@@ -154,10 +153,10 @@ function Slab({ project, index }: { project: Project; index: number }) {
 
           <p
             style={{
-              fontSize: 19,
+              fontSize: portrait ? 16 : 19,
               lineHeight: 1.55,
               color: DIM,
-              maxWidth: 660,
+              maxWidth: portrait ? '100%' : 660,
               margin: 0,
             }}
           >
@@ -167,19 +166,21 @@ function Slab({ project, index }: { project: Project; index: number }) {
           {/* Figures as a rule-separated band */}
           <div
             style={{
-              display: 'flex',
-              gap: 52,
-              marginTop: 34,
+              display: 'grid',
+              gridTemplateColumns: portrait ? '1fr 1fr' : 'repeat(3, auto)',
+              justifyContent: portrait ? 'stretch' : 'start',
+              gap: portrait ? '18px 20px' : '0 52px',
+              marginTop: portrait ? 26 : 34,
               paddingTop: 22,
               borderTop: `1px solid rgba(243,241,236,0.16)`,
             }}
           >
             {[project.metric, ...project.support].map((f, i) => (
-              <div key={f.label}>
+              <div key={f.label} style={i === 0 && portrait ? { gridColumn: '1 / -1' } : undefined}>
                 <div
                   style={{
                     fontFamily: sans,
-                    fontSize: i === 0 ? 54 : 36,
+                    fontSize: i === 0 ? (portrait ? 44 : 54) : portrait ? 28 : 36,
                     fontWeight: 600,
                     letterSpacing: '-0.04em',
                     lineHeight: 1,
@@ -207,12 +208,14 @@ function Slab({ project, index }: { project: Project; index: number }) {
           <div
             style={{
               display: 'flex',
+              flexDirection: portrait ? 'column' : 'row',
+              gap: portrait ? 16 : 0,
+              alignItems: portrait ? 'flex-start' : 'center',
               justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: 30,
+              marginTop: portrait ? 22 : 30,
             }}
           >
-            <span style={{ fontFamily: mono, fontSize: 13, letterSpacing: '0.1em', color: DIM }}>
+            <span style={{ fontFamily: mono, fontSize: portrait ? 11 : 13, letterSpacing: '0.1em', color: DIM }}>
               {project.stack.join('  /  ')}
             </span>
             {href && (
@@ -239,7 +242,7 @@ function Slab({ project, index }: { project: Project; index: number }) {
             )}
           </div>
         </div>
-      </Html>
+      </FitPanel>
 
       {/* Name repeated on the outer face, as signage seen on approach */}
       <Html
@@ -275,25 +278,24 @@ function Ground({ depth }: { depth: number }) {
   );
 }
 
-function Opening() {
-  const el = useRef<HTMLDivElement>(null);
-  useDistanceFade(el, [0, 0, 0], 14, 6);
+function Opening({ portrait, pxWidth }: { portrait: boolean; pxWidth: number }) {
   return (
-    <Html
-      transform
+    <FitPanel
       position={[0, 0, 0]}
-      scale={panelScale(11.5, 1100)}
-      style={{ width: 1100, pointerEvents: 'none' }}
-      zIndexRange={[20, 0]}
+      pxWidth={pxWidth}
+      viewDistance={13}
+      fill={portrait ? 0.93 : 0.85}
+      fadeNear={14}
+      fadeSpan={6}
     >
-      <div ref={el} style={{ opacity: 0, fontFamily: sans, color: BONE, textAlign: 'center' }}>
+      <div style={{ fontFamily: sans, color: BONE, textAlign: 'center' }}>
         <div style={{ fontFamily: mono, fontSize: 13, letterSpacing: '0.4em', color: LIME }}>
           PORTFOLIO — 2026
         </div>
         <h1
           style={{
             fontFamily: serif,
-            fontSize: 190,
+            fontSize: portrait ? 92 : 190,
             fontWeight: 400,
             lineHeight: 0.86,
             letterSpacing: '-0.03em',
@@ -304,13 +306,21 @@ function Opening() {
           <br />
           <em style={{ color: LIME }}>Rotem</em>
         </h1>
-        <p style={{ fontSize: 24, color: DIM, margin: '38px 0 0' }}>
+        <p style={{ fontSize: portrait ? 17 : 24, color: DIM, margin: portrait ? '26px 0 0' : '38px 0 0' }}>
           {IDENTITY.role} — {IDENTITY.focus}
         </p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 64, marginTop: 56 }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: portrait ? '1fr 1fr' : 'repeat(4, auto)',
+            justifyContent: 'center',
+            gap: portrait ? '22px 28px' : '0 64px',
+            marginTop: portrait ? 38 : 56,
+          }}
+        >
           {FACTS.map((f) => (
             <div key={f.label}>
-              <div style={{ fontSize: 52, fontWeight: 600, letterSpacing: '-0.04em', lineHeight: 1 }}>
+              <div style={{ fontSize: portrait ? 36 : 52, fontWeight: 600, letterSpacing: '-0.04em', lineHeight: 1 }}>
                 {f.value}
               </div>
               <div
@@ -329,26 +339,25 @@ function Opening() {
           ))}
         </div>
       </div>
-    </Html>
+    </FitPanel>
   );
 }
 
-function Closing({ z }: { z: number }) {
-  const el = useRef<HTMLDivElement>(null);
-  useDistanceFade(el, [0, 0, z], 14, 6);
+function Closing({ z, portrait, pxWidth }: { z: number; portrait: boolean; pxWidth: number }) {
   return (
-    <group position={[0, 0, z]}>
-      <Html
-        transform
-        scale={panelScale(10, 950)}
-        style={{ width: 950, pointerEvents: 'none' }}
-        zIndexRange={[20, 0]}
-      >
-        <div ref={el} style={{ opacity: 0, fontFamily: sans, color: BONE, textAlign: 'center' }}>
+    <FitPanel
+      position={[0, 0, z]}
+      pxWidth={pxWidth}
+      viewDistance={10}
+      fill={portrait ? 0.93 : 0.85}
+      fadeNear={11}
+      fadeSpan={6}
+    >
+        <div style={{ fontFamily: sans, color: BONE, textAlign: 'center' }}>
           <h2
             style={{
               fontFamily: serif,
-              fontSize: 130,
+              fontSize: portrait ? 66 : 130,
               fontWeight: 400,
               lineHeight: 0.9,
               margin: 0,
@@ -395,14 +404,15 @@ function Closing({ z }: { z: number }) {
             <span>{IDENTITY.location.toUpperCase()}</span>
           </div>
         </div>
-      </Html>
-    </group>
+    </FitPanel>
   );
 }
 
 export default function Monolith() {
   const [open, setOpen] = useState(false);
   const [pct, setPct] = useState(0);
+  const { portrait, narrow, width } = useViewport();
+  const pxWidth = portrait ? Math.min(Math.max(width - 24, 300), 560) : 1000;
   const endZ = -22 - PROJECTS.length * GAP - 6;
 
   const stations = useMemo<Station[]>(() => {
@@ -416,7 +426,9 @@ export default function Monolith() {
       // fits horizontally will still overflow top and bottom. ~13 units
       // clears a 9.4-unit-tall panel with margin.
       out.push({
-        at: [-side * 4, 0, position[2]],
+        // Panel sits at side*(CANYON - 0.06); park VIEW_D in front of it,
+        // which lands just past the corridor centreline on the far side.
+        at: [-side * (VIEW_D - (CANYON - 0.06)), 0, position[2]],
         look: [position[0], 0, position[2]],
         travel: 2.2,
         dwell: 4,
@@ -444,9 +456,9 @@ export default function Monolith() {
                 zIndex: 100,
                 display: 'flex',
                 justifyContent: 'space-between',
-                padding: '22px 28px',
+                padding: narrow ? '14px 16px' : '22px 28px',
                 fontFamily: mono,
-                fontSize: 11,
+                fontSize: narrow ? 9.5 : 11,
                 letterSpacing: '0.18em',
                 color: DIM,
                 pointerEvents: 'none',
@@ -485,11 +497,11 @@ export default function Monolith() {
         <StationCamera stations={stations} lambda={11} />
         <PointerParallax strength={0.3} />
         <Ground depth={-endZ + 40} />
-        <Opening />
+        <Opening portrait={portrait} pxWidth={pxWidth} />
         {PROJECTS.map((p, i) => (
-          <Slab key={p.id} project={p} index={i} />
+          <Slab key={p.id} project={p} index={i} portrait={portrait} pxWidth={pxWidth} />
         ))}
-        <Closing z={endZ} />
+        <Closing z={endZ} portrait={portrait} pxWidth={pxWidth} />
       </ScrollStage>
     </div>
   );

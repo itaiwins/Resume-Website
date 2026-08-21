@@ -8,6 +8,8 @@ import { mkdirSync } from 'node:fs';
 const url = process.argv[2];
 const tag = process.argv[3] || 'shot';
 const stops = (process.argv[4] || '0,0.2,0.4,0.6,0.8,1').split(',').map(Number);
+const W = Number(process.argv[5] || 1440);
+const H = Number(process.argv[6] || 900);
 const OUT = process.env.SHOT_DIR || '.shots';
 
 const browser = await puppeteer.launch({
@@ -19,12 +21,12 @@ const browser = await puppeteer.launch({
     '--use-angle=swiftshader',
     '--disable-dev-shm-usage',
     '--hide-scrollbars',
-    '--window-size=1440,900',
+    `--window-size=${W},${H}`,
   ],
 });
 mkdirSync(OUT, { recursive: true });
 const page = await browser.newPage();
-await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
+await page.setViewport({ width: W, height: H, deviceScaleFactor: 1, isMobile: W < 500, hasTouch: W < 500 });
 const errors = [];
 page.on('pageerror', (e) => errors.push('PAGEERROR: ' + e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push('CONSOLE: ' + m.text()); });

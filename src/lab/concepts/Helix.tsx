@@ -16,11 +16,16 @@
  * away from both the paper of A and the void of B.
  */
 
-import { useRef, useState, useMemo } from 'react';
-import { Line, Html } from '@react-three/drei';
-import { useFrame, useThree } from '@react-three/fiber';
-import * as THREE from 'three';
-import { ScrollStage, StationCamera, PointerParallax, panelScale, damp, type Station } from '../rig';
+import { useState, useMemo } from 'react';
+import { Line } from '@react-three/drei';
+import {
+  ScrollStage,
+  StationCamera,
+  PointerParallax,
+  FitPanel,
+  useViewport,
+  type Station,
+} from '../rig';
 import { FactSheet, FactSheetTrigger, type Theme } from '../FactSheet';
 import { IDENTITY, PROJECTS, FACTS, type Project } from '../content';
 
@@ -47,8 +52,6 @@ const RADIUS = 7.4;
 const RISE = 3.5; // vertical gain per project
 const TURN = (Math.PI * 2) / 7; // ~51° of rotation between projects
 const STANDOFF = 7.8;
-const CARD_W = 8.2;
-const CARD_PX = 880;
 
 function cardTransform(i: number) {
   const theta = i * TURN;
@@ -62,29 +65,19 @@ function cardTransform(i: number) {
   };
 }
 
-function useDistanceFade(
-  ref: React.RefObject<HTMLDivElement | null>,
-  at: [number, number, number],
-  near = 8.5,
-  span = 3.5,
-) {
-  const { camera } = useThree();
-  const target = useMemo(() => new THREE.Vector3(...at), [at]);
-  const cur = useRef(0);
-  useFrame((_, delta) => {
-    if (!ref.current) return;
-    const d = camera.position.distanceTo(target);
-    const want = THREE.MathUtils.clamp(1 - (d - near) / span, 0, 1);
-    cur.current = damp(cur.current, want, 5, Math.min(delta, 1 / 30));
-    ref.current.style.opacity = String(cur.current);
-  });
-}
-
-function Card({ project, index }: { project: Project; index: number }) {
+function Card({
+  project,
+  index,
+  portrait,
+  pxWidth,
+}: {
+  project: Project;
+  index: number;
+  portrait: boolean;
+  pxWidth: number;
+}) {
   const { position, rotation, y, theta } = cardTransform(index);
-  const el = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState(false);
-  useDistanceFade(el, position);
 
   const href = project.href ?? project.repo;
   const live = project.status !== 'private';
@@ -103,21 +96,21 @@ function Card({ project, index }: { project: Project; index: number }) {
         opacity={0.42}
       />
 
-      <group position={position} rotation={rotation}>
-        <Html
-          transform
-          scale={panelScale(CARD_W, CARD_PX)}
-          style={{ width: CARD_PX, pointerEvents: 'none' }}
-          zIndexRange={[20, 0]}
-        >
+      <FitPanel
+        position={position}
+        rotation={rotation}
+        pxWidth={pxWidth}
+        viewDistance={STANDOFF}
+        fill={portrait ? 0.94 : 0.86}
+        fadeNear={8.5}
+        fadeSpan={3.5}
+      >
           <div
-            ref={el}
             style={{
-              opacity: 0,
               background: CARD,
               color: INK,
               fontFamily: sans,
-              padding: '34px 38px 30px',
+              padding: portrait ? '24px 22px 22px' : '34px 38px 30px',
               boxShadow: hover
                 ? '0 40px 70px -24px rgba(0,0,0,0.55)'
                 : '0 28px 54px -28px rgba(0,0,0,0.45)',
@@ -144,34 +137,36 @@ function Card({ project, index }: { project: Project; index: number }) {
 
             <h2
               style={{
-                fontSize: 52,
+                fontSize: portrait ? 40 : 52,
                 fontWeight: 600,
                 letterSpacing: '-0.035em',
                 lineHeight: 1,
-                margin: '18px 0 0',
+                margin: portrait ? '14px 0 0' : '18px 0 0',
               }}
             >
               {project.name}
             </h2>
 
-            <p style={{ fontSize: 15, lineHeight: 1.62, color: MUTED, margin: '16px 0 0' }}>
+            <p style={{ fontSize: portrait ? 14.5 : 15, lineHeight: 1.62, color: MUTED, margin: '14px 0 0' }}>
               {project.blurb}
             </p>
 
             <div
               style={{
-                display: 'flex',
-                gap: 40,
-                margin: '26px 0 0',
+                display: 'grid',
+                gridTemplateColumns: portrait ? '1fr 1fr' : 'repeat(3, auto)',
+                justifyContent: portrait ? 'stretch' : 'start',
+                gap: portrait ? '16px 18px' : '0 40px',
+                margin: portrait ? '20px 0 0' : '26px 0 0',
                 paddingTop: 20,
                 borderTop: `1px solid rgba(27,24,21,0.14)`,
               }}
             >
               {[project.metric, ...project.support].map((f, i) => (
-                <div key={f.label}>
+                <div key={f.label} style={i === 0 && portrait ? { gridColumn: '1 / -1' } : undefined}>
                   <div
                     style={{
-                      fontSize: i === 0 ? 42 : 26,
+                      fontSize: i === 0 ? (portrait ? 38 : 42) : 26,
                       fontWeight: 600,
                       letterSpacing: '-0.04em',
                       lineHeight: 1,
@@ -199,9 +194,11 @@ function Card({ project, index }: { project: Project; index: number }) {
             <div
               style={{
                 display: 'flex',
+                flexDirection: portrait ? 'column' : 'row',
+                gap: portrait ? 14 : 0,
+                alignItems: portrait ? 'flex-start' : 'center',
                 justifyContent: 'space-between',
-                alignItems: 'center',
-                marginTop: 24,
+                marginTop: portrait ? 18 : 24,
               }}
             >
               <span style={{ fontFamily: mono, fontSize: 11, color: MUTED, letterSpacing: '0.06em' }}>
@@ -231,8 +228,7 @@ function Card({ project, index }: { project: Project; index: number }) {
               )}
             </div>
           </div>
-        </Html>
-      </group>
+      </FitPanel>
     </>
   );
 }
@@ -268,24 +264,24 @@ const OPEN_POS: [number, number, number] = [
   Math.cos(OPEN_THETA) * RADIUS,
 ];
 
-function Opening() {
-  const el = useRef<HTMLDivElement>(null);
-  useDistanceFade(el, OPEN_POS, 9, 6);
+function Opening({ portrait, pxWidth }: { portrait: boolean; pxWidth: number }) {
   return (
-    <group position={OPEN_POS} rotation={[0, OPEN_THETA, 0]}>
-      <Html
-        transform
-        scale={panelScale(10.5, 1000)}
-        style={{ width: 1000, pointerEvents: 'none' }}
-        zIndexRange={[20, 0]}
-      >
-        <div ref={el} style={{ opacity: 0, fontFamily: sans, color: CREAM, textAlign: 'center' }}>
+    <FitPanel
+      position={OPEN_POS}
+      rotation={[0, OPEN_THETA, 0]}
+      pxWidth={pxWidth}
+      viewDistance={STANDOFF}
+      fill={portrait ? 0.94 : 0.86}
+      fadeNear={9}
+      fadeSpan={6}
+    >
+        <div style={{ fontFamily: sans, color: CREAM, textAlign: 'center' }}>
           <div style={{ fontFamily: mono, fontSize: 12, letterSpacing: '0.38em', color: EMBER }}>
             SELECTED WORK — 2026
           </div>
           <h1
             style={{
-              fontSize: 116,
+              fontSize: portrait ? 58 : 116,
               fontWeight: 600,
               letterSpacing: '-0.05em',
               lineHeight: 0.94,
@@ -294,13 +290,21 @@ function Opening() {
           >
             {IDENTITY.name}
           </h1>
-          <p style={{ fontSize: 20, color: '#A79D91', margin: '24px 0 0' }}>
+          <p style={{ fontSize: portrait ? 16 : 20, color: '#A79D91', margin: '22px 0 0' }}>
             {IDENTITY.role} — {IDENTITY.focus}
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 54, marginTop: 46 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: portrait ? '1fr 1fr' : 'repeat(4, auto)',
+              justifyContent: 'center',
+              gap: portrait ? '22px 26px' : '0 54px',
+              marginTop: portrait ? 34 : 46,
+            }}
+          >
             {FACTS.map((f) => (
               <div key={f.label}>
-                <div style={{ fontSize: 40, fontWeight: 600, letterSpacing: '-0.04em', lineHeight: 1 }}>
+                <div style={{ fontSize: portrait ? 32 : 40, fontWeight: 600, letterSpacing: '-0.04em', lineHeight: 1 }}>
                   {f.value}
                 </div>
                 <div
@@ -319,25 +323,34 @@ function Opening() {
             ))}
           </div>
         </div>
-      </Html>
-    </group>
+    </FitPanel>
   );
 }
 
-function Closing({ theta, y }: { theta: number; y: number }) {
-  const el = useRef<HTMLDivElement>(null);
+function Closing({
+  theta,
+  y,
+  portrait,
+  pxWidth,
+}: {
+  theta: number;
+  y: number;
+  portrait: boolean;
+  pxWidth: number;
+}) {
   const pos: [number, number, number] = [Math.sin(theta) * RADIUS, y, Math.cos(theta) * RADIUS];
-  useDistanceFade(el, pos, 9, 6);
   return (
-    <group position={pos} rotation={[0, theta, 0]}>
-      <Html
-        transform
-        scale={panelScale(9, 900)}
-        style={{ width: 900, pointerEvents: 'none' }}
-        zIndexRange={[20, 0]}
-      >
-        <div ref={el} style={{ opacity: 0, fontFamily: sans, color: CREAM, textAlign: 'center' }}>
-          <h2 style={{ fontSize: 78, fontWeight: 600, letterSpacing: '-0.045em', margin: 0 }}>
+    <FitPanel
+      position={pos}
+      rotation={[0, theta, 0]}
+      pxWidth={pxWidth}
+      viewDistance={STANDOFF}
+      fill={portrait ? 0.94 : 0.86}
+      fadeNear={9}
+      fadeSpan={6}
+    >
+        <div style={{ fontFamily: sans, color: CREAM, textAlign: 'center' }}>
+          <h2 style={{ fontSize: portrait ? 46 : 78, fontWeight: 600, letterSpacing: '-0.045em', margin: 0 }}>
             Let&apos;s talk.
           </h2>
           <a
@@ -377,14 +390,15 @@ function Closing({ theta, y }: { theta: number; y: number }) {
             <span>{IDENTITY.location.toUpperCase()}</span>
           </div>
         </div>
-      </Html>
-    </group>
+    </FitPanel>
   );
 }
 
 export default function Helix() {
   const [open, setOpen] = useState(false);
   const [pct, setPct] = useState(0);
+  const { portrait, narrow, width } = useViewport();
+  const pxWidth = portrait ? Math.min(Math.max(width - 24, 300), 560) : 880;
 
   const endTheta = PROJECTS.length * TURN;
   const endY = PROJECTS.length * RISE;
@@ -440,9 +454,9 @@ export default function Helix() {
                 zIndex: 100,
                 display: 'flex',
                 justifyContent: 'space-between',
-                padding: '22px 28px',
+                padding: narrow ? '14px 16px' : '22px 28px',
                 fontFamily: mono,
-                fontSize: 11,
+                fontSize: narrow ? 9.5 : 11,
                 letterSpacing: '0.18em',
                 color: '#8F877C',
                 pointerEvents: 'none',
@@ -456,6 +470,7 @@ export default function Helix() {
             <div
               style={{
                 position: 'fixed',
+                display: narrow ? 'none' : 'block',
                 right: 26,
                 top: '50%',
                 transform: 'translateY(-50%)',
@@ -484,11 +499,11 @@ export default function Helix() {
         <StationCamera stations={stations} lambda={11} />
         <PointerParallax strength={0.24} />
         <Spine top={endY} />
-        <Opening />
+        <Opening portrait={portrait} pxWidth={pxWidth} />
         {PROJECTS.map((p, i) => (
-          <Card key={p.id} project={p} index={i} />
+          <Card key={p.id} project={p} index={i} portrait={portrait} pxWidth={pxWidth} />
         ))}
-        <Closing theta={endTheta} y={endY} />
+        <Closing theta={endTheta} y={endY} portrait={portrait} pxWidth={pxWidth} />
       </ScrollStage>
     </div>
   );
