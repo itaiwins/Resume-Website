@@ -1,0 +1,17 @@
+{
+  // Production config for itairotem.com (MEXA-2172). Same Worker and assets as wrangler.jsonc,
+  // plus src/worker.js in front so only itairotem.com is indexable; the workers.dev host stays
+  // noindex. Deploy with `sh scripts/deploy.sh prod` only once the domain is ready.
+  // The custom domain itself is attached by Roy (DNS issue), not here.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "itairotem-ai",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-11-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "none",
+    "html_handling": "auto-trailing-slash"
+  }
+}

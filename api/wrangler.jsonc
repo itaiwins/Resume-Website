@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "itairotem-ai-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-11-01",
+  // workers.dev only: no routes, no custom domain (MEXA-2123)
+  "workers_dev": true,
+  "preview_urls": false,
+  "rules": [{ "type": "Text", "globs": ["**/*.md"], "fallthrough": true }],
+  "durable_objects": { "bindings": [{ "name": "LIMITS", "class_name": "LimitsDO" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["LimitsDO"] }],
+  "observability": { "enabled": true },
+  // ANTHROPIC_API_KEY is a secret (`wrangler secret put ANTHROPIC_API_KEY`). STUB=1 answers with canned text and never calls the model.
+  "vars": { "STUB": "0", "DAILY_CAP_USD": "2", "IP_PER_HOUR": "20", "IP_PER_DAY": "60", "MODEL": "claude-haiku-5-5" }
+}

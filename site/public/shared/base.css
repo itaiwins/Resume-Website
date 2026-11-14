@@ -1,0 +1,191 @@
+/* Shared mechanics only: resets, the streaming reveal, collapse of pending
+   blocks, the demos' geometry and the drawing's line system. Every colour,
+   face, radius and timing is a token the skin sets. */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100dvh; font-family: var(--font-text); color: var(--ink); background: var(--bg); line-height: 1.5; font-feature-settings: "kern", "liga", "calt"; }
+img { display: block; max-width: 100%; height: auto; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::selection { background: var(--sel); color: var(--ink); }
+main, .page, .dock, .thread, .msg, .answer { min-width: 0; max-width: 100%; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Streaming: words are laid out from the start and revealed in place;
+   each block (paragraph, list, artifact) opens as the stream reaches it. */
+.tok { opacity: 0; display: inline; }
+.tok.on { opacity: 1; transition: opacity var(--tok-ms, 160ms) var(--ease-out); }
+.answer .blk { display: grid; grid-template-rows: 1fr; opacity: 1; overflow: hidden; }
+.answer .blk + .blk { margin-top: var(--p-gap, 0.85em); }
+.answer .blk.blk-art + .blk, .answer .blk + .blk.blk-art { margin-top: var(--art-gap, 1.25rem); }
+.answer .blk > * { min-height: 0; min-width: 0; margin: 0; }
+.answer .blk.pending { grid-template-rows: 0fr; opacity: 0; margin-top: 0 !important; }
+.answer .blk.open { transition: grid-template-rows 380ms var(--ease-out), opacity 300ms var(--ease-out), margin-top 380ms var(--ease-out); }
+.answer.done .blk { overflow: visible; transition: none; }
+.answer ul { padding-left: 1.2em; }
+.answer li + li { margin-top: 0.3em; }
+.answer.streaming li:empty { display: none; }
+.tok.cur::after { content: ""; display: inline-block; width: 0.5em; height: 0.95em; vertical-align: -0.12em; margin-left: 0.1em; background: var(--accent); border-radius: 1px; animation: caret 1s steps(2) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+::view-transition-group(composer) { animation-duration: 420ms; animation-timing-function: var(--ease-out, ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; animation-delay: 0ms !important; transition-duration: 0.001ms !important; transition-delay: 0ms !important; scroll-behavior: auto !important; }
+  .tok.on, .answer .blk.open { transition: none; }
+  .tok.cur::after { animation: none; }
+  .thinking, .thinking * { animation: none !important; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+
+/* Send button doubles as "show all" while streaming. */
+#send .ic-send, #send .ic-stop { display: block; }
+#send:not(.stop) .ic-stop { display: none; }
+#send.stop .ic-send { display: none; }
+
+/* ---------- demos: geometry shared, surfaces per skin ---------- */
+.demo { --d-ink: var(--demo-ink, var(--ink)); --d-mute: var(--demo-mute, color-mix(in oklab, var(--ink) 14%, transparent)); --d-bg: var(--demo-bg, var(--bg)); --d-surface: var(--demo-surface, var(--surface)); --d-line: var(--demo-line, var(--line)); --d-acc: var(--demo-accent, var(--accent));
+  position: relative; width: 100%; font-size: 13px; line-height: 1.3; color: var(--d-ink); container-type: inline-size; overflow: hidden; }
+.demo .scr { background: var(--d-surface); border: 1px solid var(--d-line); border-radius: var(--demo-r, 18px); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.demo .bar { display: block; height: 8px; border-radius: 99px; background: var(--d-mute); }
+.demo .bar.h7 { height: 7px; } .demo .bar.h8 { height: 8px; } .demo .bar.h9 { height: 9px; } .demo .bar.h14 { height: 14px; } .demo .bar.h16 { height: 16px; }
+.demo .clear { opacity: 0; transition: opacity 300ms var(--ease-out); }
+.demo .scr-top { display: flex; flex-direction: column; gap: 7px; padding-top: 4px; }
+.demo .scr-sum { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.demo .scr-cell { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: color-mix(in oklab, var(--d-ink) 4%, transparent); }
+.demo .scr-list { display: flex; flex-direction: column; gap: 6px; min-height: 150px; transition: opacity 320ms var(--ease-out); }
+.demo .scr-list.clear { opacity: 0; }
+.demo .row { display: grid; grid-template-columns: 18px 1fr auto; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; }
+.demo .row.filler .bar { justify-self: start; }
+.demo .row.new { background: color-mix(in oklab, var(--d-ink) 5%, transparent); display: grid; grid-template-rows: 0fr; opacity: 0; padding-block: 0; transform: translateY(6px); transition: grid-template-rows 360ms var(--ease-out), opacity 300ms var(--ease-out), padding 360ms var(--ease-out), transform 360ms var(--ease-out); }
+.demo .row.new.open { grid-template-rows: 1fr; opacity: 1; padding-block: 9px; transform: none; }
+.demo .row.new > * { min-height: 0; }
+.demo .box { width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid var(--d-mute); display: block; }
+.demo .box.event { border-radius: 3px; width: 4px; border: 0; background: var(--d-acc); height: 18px; justify-self: center; }
+.demo .dots { display: flex; gap: 3px; }
+.demo .dots .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--d-mute); display: block; }
+.demo .dots .dot.on { background: var(--d-acc); }
+.demo .row-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.demo .row-text b { font-weight: 600; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.demo .row-text small { font-size: 10.5px; opacity: 0.6; }
+.demo .tag { font-size: 10px; letter-spacing: 0.02em; text-transform: capitalize; padding: 3px 8px; border-radius: 99px; background: color-mix(in oklab, var(--d-acc) 14%, transparent); color: var(--d-acc); font-weight: 600; }
+.demo .abar { display: grid; grid-template-columns: 1fr 34px; gap: 8px; align-items: center; margin-top: auto; }
+.demo .abar-field { height: 38px; border-radius: 99px; background: var(--d-bg); border: 1px solid var(--d-line); display: flex; align-items: center; padding: 0 14px; gap: 1px; font-size: 12.5px; transition: transform 160ms var(--ease-out); }
+.demo .abar-field.sent { transform: scale(0.985); }
+.demo .abar-text:empty + .caret::before { content: ""; }
+.demo .caret { width: 1.5px; height: 14px; background: var(--d-acc); display: inline-block; animation: caret 1s steps(2) infinite; }
+.demo .abar-mic { width: 34px; height: 34px; border-radius: 50%; background: var(--d-ink); display: block; position: relative; }
+.demo .abar-mic::after { content: ""; position: absolute; inset: 11px 13px; border-radius: 4px; background: var(--d-surface); }
+/* Unskippable */
+.demo .chk-head { display: flex; justify-content: space-between; align-items: center; }
+.demo .chk-head b { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+.demo .chk-head .bar { width: 26%; }
+.demo .thumb { aspect-ratio: 16 / 7; border-radius: 12px; background: linear-gradient(160deg, color-mix(in oklab, var(--d-ink) 72%, var(--d-acc)), var(--d-ink)); position: relative; overflow: hidden; }
+.demo .thumb-bar { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 4px; border-radius: 2px; background: color-mix(in oklab, #fff 30%, transparent); }
+.demo .thumb-bar::after { content: ""; position: absolute; inset: 0; width: 42%; border-radius: 2px; background: #fff; }
+.demo .thumb::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in oklab, #fff 22%, transparent), transparent); transform: translateX(-120%); }
+.demo .thumb.scan::after { animation: scan 2.2s linear infinite; }
+@keyframes scan { to { transform: translateX(120%); } }
+.demo .chk-rows { display: flex; flex-direction: column; gap: 8px; }
+.demo .chk { display: flex; align-items: center; gap: 10px; }
+.demo .mark { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--d-mute); display: grid; place-items: center; color: #fff; transition: background 200ms var(--ease-out), border-color 200ms var(--ease-out); }
+.demo .mark svg { width: 12px; height: 12px; }
+.demo .mark svg path { stroke-dasharray: 16; stroke-dashoffset: 16; transition: stroke-dashoffset 260ms var(--ease-out) 60ms; }
+.demo .chk.ok .mark { background: var(--d-acc); border-color: var(--d-acc); }
+.demo .chk.ok .mark svg path { stroke-dashoffset: 0; }
+.demo .cta { align-self: stretch; text-align: center; padding: 10px; border-radius: 99px; font-weight: 600; font-size: 12.5px; background: color-mix(in oklab, var(--d-ink) 8%, transparent); color: color-mix(in oklab, var(--d-ink) 45%, transparent); transition: background 240ms var(--ease-out), color 240ms var(--ease-out), transform 240ms var(--ease-out); }
+.demo .cta.on { background: var(--d-ink); color: var(--d-surface); transform: translateY(-1px); }
+/* MCPSafe */
+.demo .scan-field { display: flex; align-items: center; gap: 10px; height: 38px; border-radius: 10px; border: 1px solid var(--d-line); padding: 0 6px 0 12px; }
+.demo .scan-field .bar { flex: 1; }
+.demo .scan-btn { padding: 6px 12px; border-radius: 7px; background: var(--d-ink); color: var(--d-surface); font-weight: 600; font-size: 12px; transition: transform 120ms var(--ease-out); }
+.demo .scan-field.pressed .scan-btn { transform: scale(0.95); }
+.demo .prog { height: 3px; border-radius: 2px; background: var(--d-mute); overflow: hidden; }
+.demo .prog-fill { display: block; height: 100%; width: 0; background: var(--d-acc); transition: width 2.1s linear; }
+.demo .scanning .prog-fill, .demo .scored .prog-fill { width: 100%; }
+.demo .scan-rows { display: flex; flex-direction: column; gap: 9px; }
+.demo .scan-row { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 10px; font-size: 12.5px; }
+.demo .led { width: 8px; height: 8px; border-radius: 50%; background: var(--d-mute); display: block; transition: background 220ms var(--ease-out), box-shadow 220ms var(--ease-out); }
+.demo .scanning .led { animation: blink 0.9s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: 0.35; } }
+.demo .scan-row.ok .led { background: var(--d-acc); animation: none; }
+.demo .scan-row .tail { width: 36px; justify-self: end; }
+.demo .score { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px; padding-top: 10px; border-top: 1px solid var(--d-line); font-size: 12px; font-weight: 600; }
+.demo .score-bar { height: 8px; border-radius: 99px; background: var(--d-mute); overflow: hidden; display: block; }
+.demo .score-fill { display: block; height: 100%; width: 0; border-radius: 99px; background: var(--d-acc); transition: width 700ms var(--ease-out); }
+.demo .scored .score-fill { width: 82%; }
+.demo.compact { font-size: 12px; }
+.demo.compact .scr { padding: 12px; gap: 9px; }
+.demo.compact .scr-list { min-height: 118px; }
+.demo.compact .scr-sum { display: none; }
+.demo.compact .thumb { aspect-ratio: 16 / 5; }
+.demo.compact .chk:nth-child(4) { display: none; }
+.demo.compact .scr { gap: 8px; }
+/* Bento tiles: the media fills the tile and is cropped, never stretched; Tend shows its bottom (rows + bar). */
+.tile-media { flex: 1; min-height: 11rem; overflow: hidden; align-items: flex-start !important; }
+.tile[data-id="tend"] .tile-media { align-items: flex-end !important; }
+.tile-media .demo { width: 100%; }
+.tile[data-id="alphahq"] .tile-media, .tile[data-id="oura"] .tile-media { display: none; }
+
+/* ---------- dimensional drawing ---------- */
+.dd { margin: 0; color-scheme: light; color: #000; background: #fff; border-radius: var(--dd-r, 10px); padding: 14px; font-family: Arimo, Helvetica, Arial, sans-serif; border: 1px solid #000; }
+.dd-title { display: grid; grid-template-columns: 1fr auto; gap: 12px; border: 1.2px solid #000; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+.dd-title-main { display: flex; flex-direction: column; gap: 4px; }
+.dd-title-big { font-size: 15px; font-weight: 300; letter-spacing: 0.16em; }
+.dd-title-scope { text-transform: none; letter-spacing: 0; font-size: 11px; color: #333; }
+.dd-title-cells { display: flex; flex-wrap: wrap; gap: 0; margin: 0; }
+.dd-title-cells div { border-left: 0.8px solid #000; padding: 0 12px; }
+.dd-title-cells dt { color: #666; }
+.dd-title-cells dd { margin: 2px 0 0; font-weight: 600; }
+.dd-frame { overflow-x: auto; border-radius: 8px; }
+.dd-sheet { width: 100%; min-width: 760px; display: block; }
+.dd-cap { font-size: 11px; color: #444; margin-top: 10px; letter-spacing: 0; text-transform: none; font-family: var(--font-text); }
+.dd-lines .dd-obj { fill: none; stroke: #000; stroke-width: 1.6; }
+.dd-lines .dd-fill { fill: #f2f2f2; }
+.dd-lines .dd-slot { fill: #fafafa; stroke: #000; stroke-width: 0.8; stroke-dasharray: 4 3; }
+.dd-lines .dd-hatch { fill: url(#dd-hatch); stroke: #000; stroke-width: 0.6; }
+.dd-lines .dd-phantom { stroke: #000; stroke-width: 0.6; stroke-dasharray: 12 4; }
+.dd-lines .dd-center { stroke: #000; stroke-width: 0.55; stroke-dasharray: 14 4 2 4; }
+.dd-lines .dd-detail { fill: none; stroke: #000; stroke-width: 0.7; stroke-dasharray: 5 3; }
+.dd-lines .dd-rad { fill: none; stroke: #000; stroke-width: 1.2; }
+.dd-lines .dd-rule { stroke: #000; stroke-width: 0.8; }
+.dd-lines .dd-nb { fill: #fff; stroke: #000; stroke-width: 0.9; }
+.dd-dims .dd-dim { stroke: #000; stroke-width: 0.7; }
+.dd-dims .dd-ext { stroke: #000; stroke-width: 0.55; }
+.dd-text text { fill: #000; font-family: Arimo, Helvetica, Arial, sans-serif; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.dd-text .dd-dt { font-size: 10.5px; }
+.dd-text .dd-slot-t { font-size: 8.5px; letter-spacing: 0.08em; }
+.dd-text .dd-slot-s { font-size: 8px; letter-spacing: 0.08em; fill: #555; }
+.dd-text .dd-vt { font-size: 11px; letter-spacing: 0.1em; font-weight: 600; }
+.dd-text .dd-vs { font-size: 9px; letter-spacing: 0.08em; fill: #444; }
+.dd-text .dd-n { font-size: 9px; letter-spacing: 0.02em; }
+.dd-text .dd-nb-t { font-size: 9.5px; font-weight: 600; }
+.dd-text .dd-tc { font-size: 9.5px; letter-spacing: 0.04em; }
+.dd-text .dd-tv { font-size: 9.5px; letter-spacing: 0.04em; font-weight: 600; }
+.dd-text .dd-f { font-size: 9px; letter-spacing: 0.1em; }
+
+/* ---------- the org sheet (org.js): same line system, fits its column, builds up once ---------- */
+.dd-org .dd-sheet { min-width: 0; }
+.dd-org .dd-frame { overflow: visible; }
+.dd-lines .dd-frame-line { fill: none; stroke: #000; stroke-width: 1.2; }
+.dd-lines .dd-bus { stroke: #000; stroke-width: 1.8; }
+.dd-lines .dd-conn { fill: none; stroke: #000; stroke-width: 0.9; }
+.dd-lines .dd-thin { stroke-width: 0.6; stroke-dasharray: 4 3; }
+.dd-lines .dd-rail { stroke-width: 0.6; }
+.dd-text .dd-role { font-size: 9px; letter-spacing: 0.01em; fill: #333; }
+.dd-text .dd-small { font-size: 8.5px; }
+.dd-fills rect { stroke: none; }
+.dd-text .dd-name { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; }
+.dd-text .dd-big { font-size: 18px; font-weight: 300; letter-spacing: -0.01em; }
+.dd-text .dd-cap { font-size: 9.5px; letter-spacing: 0; fill: #1a1a1a; }
+.dd-org .dd-text .dd-n { font-size: 9.5px; }
+.dd-org .dd-text .dd-tv, .dd-org .dd-text .dd-tc { font-size: 9.5px; }
+.dd-org .dd-text .dd-tc { fill: #333; }
+/* Build-up: strokes draw (pathLength=1), text and fills fade; each element carries its own --d.
+   .on is set when the sheet scrolls into view; .still (reduced motion) shows the finished sheet. */
+.dd-org .dd-draw { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.dd-org .dd-fade { opacity: 0; }
+.dd-org.on .dd-draw { stroke-dashoffset: 0; transition: stroke-dashoffset 640ms var(--ease-in-out) var(--d, 0s); }
+.dd-org.on .dd-fade { opacity: 1; transition: opacity 360ms var(--ease-out) var(--d, 0s); }
+.dd-org.still .dd-draw, .dd-org.still .dd-fade { transition: none; }
